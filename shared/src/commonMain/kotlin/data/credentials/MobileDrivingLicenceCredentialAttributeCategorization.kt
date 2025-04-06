@@ -1,7 +1,7 @@
 package data.credentials
 
 import at.asitplus.jsonpath.core.NormalizedJsonPath
-import at.asitplus.wallet.app.common.third_parts.at.asitplus.jsonpath.core.plus
+import at.asitplus.wallet.app.common.thirdParty.at.asitplus.jsonpath.core.plus
 import at.asitplus.wallet.mdl.MobileDrivingLicenceDataElements
 import data.PersonalDataCategory
 
@@ -15,14 +15,17 @@ object MobileDrivingLicenceCredentialAttributeCategorization : CredentialAttribu
             MobileDrivingLicenceDataElements.BIRTH_DATE,
             MobileDrivingLicenceDataElements.PORTRAIT,
             MobileDrivingLicenceDataElements.PORTRAIT_CAPTURE_DATE,
-
-            MobileDrivingLicenceDataElements.NATIONALITY, // TODO: not in figma?
+            MobileDrivingLicenceDataElements.NATIONALITY,
         ).map { NormalizedJsonPath() + it to null },
 
         PersonalDataCategory.AgeData to listOf(
+            MobileDrivingLicenceDataElements.AGE_OVER_12,
+            MobileDrivingLicenceDataElements.AGE_OVER_14,
+            MobileDrivingLicenceDataElements.AGE_OVER_16,
+            MobileDrivingLicenceDataElements.AGE_OVER_18,
+            MobileDrivingLicenceDataElements.AGE_OVER_21,
             MobileDrivingLicenceDataElements.AGE_BIRTH_YEAR,
             MobileDrivingLicenceDataElements.AGE_IN_YEARS,
-            MobileDrivingLicenceDataElements.AGE_OVER_18,
         ).map { NormalizedJsonPath() + it to null },
 
         PersonalDataCategory.BirthData to listOf(

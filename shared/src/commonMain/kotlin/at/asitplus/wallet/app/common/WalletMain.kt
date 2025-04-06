@@ -1,28 +1,42 @@
 package at.asitplus.wallet.app.common
 
 import androidx.compose.ui.graphics.ImageBitmap
-import at.asitplus.jsonpath.core.NormalizedJsonPath
-import at.asitplus.wallet.cor.CertificateOfResidenceScheme
-import at.asitplus.wallet.eprescription.EPrescriptionScheme
-import at.asitplus.wallet.eupid.EuPidScheme
-import at.asitplus.wallet.idaustria.IdAustriaScheme
-import at.asitplus.wallet.lib.Initializer.initOpenIdModule
-import at.asitplus.wallet.lib.agent.DefaultVerifierCryptoService
+import at.asitplus.catchingUnwrapped
+import at.asitplus.signum.indispensable.josef.JsonWebKey
+import at.asitplus.signum.indispensable.josef.JsonWebKeySet
+import at.asitplus.signum.indispensable.josef.JwsSigned
+import at.asitplus.valera.resources.Res
+import at.asitplus.valera.resources.snackbar_update_action
+import at.asitplus.valera.resources.snackbar_update_hint
+import at.asitplus.wallet.app.common.dcapi.CredentialsContainer
+import at.asitplus.wallet.app.common.dcapi.DCAPIRequest
 import at.asitplus.wallet.lib.agent.HolderAgent
-import at.asitplus.wallet.lib.agent.Parser
 import at.asitplus.wallet.lib.agent.Validator
 import at.asitplus.wallet.lib.cbor.DefaultCoseService
 import at.asitplus.wallet.lib.jws.DefaultJwsService
+import at.asitplus.wallet.lib.jws.DefaultVerifierJwsService
 import at.asitplus.wallet.lib.ktor.openid.CredentialIdentifierInfo
-import at.asitplus.wallet.mdl.MobileDrivingLicenceScheme
-import at.asitplus.wallet.por.PowerOfRepresentationScheme
+import at.asitplus.wallet.lib.rqes.Initializer.initRqesModule
 import data.storage.AntilogAdapter
 import data.storage.DataStoreService
 import data.storage.PersistentSubjectCredentialStore
 import getImageDecoder
 import io.github.aakira.napier.Napier
+import io.ktor.client.call.body
+import io.ktor.client.request.get
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import net.swiftzer.semver.SemVer
+import org.jetbrains.compose.resources.getString
 
 /**
  * Main class to hold all services needed in the Compose App.
@@ -31,9 +45,11 @@ class WalletMain(
     val cryptoService: WalletCryptoService,
     private val dataStoreService: DataStoreService,
     val platformAdapter: PlatformAdapter,
-    var subjectCredentialStore: PersistentSubjectCredentialStore = PersistentSubjectCredentialStore(dataStoreService),
+    var subjectCredentialStore: PersistentSubjectCredentialStore = PersistentSubjectCredentialStore(
+        dataStoreService
+    ),
     val buildContext: BuildContext,
-    val scope: CoroutineScope,
+    val scope: CoroutineScope
 ) {
     lateinit var walletConfig: WalletConfig
     lateinit var holderAgent: HolderAgent
@@ -41,45 +57,46 @@ class WalletMain(
     lateinit var httpService: HttpService
     lateinit var presentationService: PresentationService
     lateinit var snackbarService: SnackbarService
+    lateinit var signingService: SigningService
     lateinit var errorService: ErrorService
+    lateinit var dcApiService: DCAPIService
     private val regex = Regex("^(?=\\[[0-9]{2})", option = RegexOption.MULTILINE)
 
+    val readyForIntents = MutableStateFlow<Boolean?>(null)
 
     init {
-        initOpenIdModule()
         at.asitplus.wallet.mdl.Initializer.initWithVCK()
         at.asitplus.wallet.idaustria.Initializer.initWithVCK()
         at.asitplus.wallet.eupid.Initializer.initWithVCK()
         at.asitplus.wallet.cor.Initializer.initWithVCK()
         at.asitplus.wallet.por.Initializer.initWithVCK()
-        at.asitplus.wallet.eprescription.Initializer.initWithVCK()
+        at.asitplus.wallet.companyregistration.Initializer.initWithVCK()
+        at.asitplus.wallet.healthid.Initializer.initWithVCK()
+        at.asitplus.wallet.taxid.Initializer.initWithVCK()
+        initRqesModule()
         Napier.takeLogarithm()
-        Napier.base(AntilogAdapter(platformAdapter, ""))
+        Napier.base(AntilogAdapter(platformAdapter, "", buildContext.buildType))
     }
-
-    val availableSchemes = listOf(
-        MobileDrivingLicenceScheme,
-        IdAustriaScheme,
-        EuPidScheme,
-        CertificateOfResidenceScheme,
-        PowerOfRepresentationScheme,
-        EPrescriptionScheme
-    )
 
     @Throws(Throwable::class)
     fun initialize(snackbarService: SnackbarService) {
+        val coseService = DefaultCoseService(cryptoService)
         walletConfig =
             WalletConfig(dataStoreService = this.dataStoreService, errorService = errorService)
         subjectCredentialStore = PersistentSubjectCredentialStore(dataStoreService)
         holderAgent = HolderAgent(
-            validator = Validator(DefaultVerifierCryptoService(), Parser()),
+            validator = Validator(
+                verifierJwsService = DefaultVerifierJwsService(
+                    publicKeyLookup = issuerKeyLookup()
+                )
+            ),
             subjectCredentialStore = subjectCredentialStore,
             jwsService = DefaultJwsService(cryptoService),
-            coseService = DefaultCoseService(cryptoService),
+            coseService = coseService,
             keyPair = cryptoService.keyMaterial,
         )
 
-        httpService = HttpService()
+        httpService = HttpService(buildContext)
         provisioningService = ProvisioningService(
             platformAdapter,
             dataStoreService,
@@ -93,10 +110,31 @@ class WalletMain(
             platformAdapter,
             cryptoService,
             holderAgent,
-            httpService
+            httpService,
+            coseService
         )
+        signingService = SigningService(platformAdapter, dataStoreService, errorService, snackbarService, httpService)
         this.snackbarService = snackbarService
+        this.dcApiService = DCAPIService(platformAdapter)
     }
+
+    private fun issuerKeyLookup(): (JwsSigned<*>) -> Set<JsonWebKey>? = { jws ->
+        if (jws.payloadIssuer() == "https://dss.aegean.gr/rfc-issuer" && jws.header.keyId != null) {
+            loadJsonWebKeySet("https://dss.aegean.gr/.well-known/")
+                ?.keys?.firstOrNull { it.keyId == jws.header.keyId }?.let { setOf(it) }
+        } else setOf()
+    }
+
+    private fun loadJsonWebKeySet(url: String) = runBlocking {
+        CoroutineScope(Dispatchers.IO).async {
+            catchingUnwrapped {
+                httpService.buildHttpClient().get(url).body<JsonWebKeySet>()
+            }.getOrNull()
+        }.await()
+    }
+
+    private fun JwsSigned<*>.payloadIssuer() =
+        ((payload as? JsonObject?)?.get("iss") as? JsonPrimitive?)?.content
 
     suspend fun resetApp() {
         dataStoreService.clearLog()
@@ -121,7 +159,6 @@ class WalletMain(
     fun startProvisioning(
         host: String,
         credentialIdentifierInfo: CredentialIdentifierInfo,
-        requestedAttributes: Set<NormalizedJsonPath>?,
         onSuccess: () -> Unit,
     ) {
         scope.launch {
@@ -129,14 +166,62 @@ class WalletMain(
                 provisioningService.startProvisioningWithAuthRequest(
                     credentialIssuer = host,
                     credentialIdentifierInfo = credentialIdentifierInfo,
-                    requestedAttributes = requestedAttributes,
                 )
                 onSuccess()
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 errorService.emit(e)
             }
         }
     }
+
+    fun updateDigitalCredentialsAPIIntegration() {
+        scope.launch {
+            try {
+                Napier.d("Updating digital credentials integration")
+                subjectCredentialStore.observeStoreContainer().collect { container ->
+                    dcApiService.registerCredentialWithSystem(container)
+                }
+            } catch (e: Throwable) {
+                Napier.w("Could not update credentials with system", e)
+            }
+        }
+    }
+
+    fun updateCheck() {
+        scope.launch(Dispatchers.IO) {
+            runCatching {
+                val httpClient = httpService.buildHttpClient()
+                val host = "https://wallet.a-sit.at/"
+                val url = "${host}check.json"
+                Napier.d("Getting check.json from $url")
+                val json = httpClient.get(url).body<JsonObject>()
+                json["apps"]?.jsonObject?.get(buildContext.packageName)?.let {
+                    (it as? JsonObject)?.get("latestVersion")?.jsonPrimitive?.content?.let {
+                        val latestVersion = SemVer.parse(it)
+                        val currentVersion = SemVer.parse(buildContext.versionName)
+                        Napier.d("Version is $currentVersion, latest is $latestVersion")
+                        if (latestVersion > currentVersion) {
+                            snackbarService.showSnackbar(
+                                getString(
+                                    Res.string.snackbar_update_hint,
+                                    host,
+                                    latestVersion
+                                ), getString(Res.string.snackbar_update_action)
+                            ) {
+                                platformAdapter.openUrl(host)
+                            }
+                        }
+                    }
+                }
+            }.onFailure {
+                Napier.w("Update check failed", it)
+            }
+        }
+    }
+}
+
+fun PlatformAdapter.decodeImage(image: ByteArray): ImageBitmap {
+    return getImageDecoder((image))
 }
 
 /**
@@ -181,10 +266,23 @@ interface PlatformAdapter {
      * Opens the platform specific share dialog
      */
     fun shareLog()
-}
 
-fun PlatformAdapter.decodeImage(image: ByteArray): ImageBitmap {
-    return getImageDecoder((image))
+    /**
+     * Registers credentials with the digital credentials browser API
+     * @param entries credentials to add
+     */
+    fun registerWithDigitalCredentialsAPI(entries: CredentialsContainer)
+
+    /**
+     * Retrieves request from the digital credentials browser API
+     */
+    fun getCurrentDCAPIData(): DCAPIRequest?
+
+    /**
+     * Prepares the credential response and sends it back to the invoking application
+     */
+    fun prepareDCAPICredentialResponse(responseJson: ByteArray, dcApiRequest: DCAPIRequest)
+
 }
 
 class DummyPlatformAdapter : PlatformAdapter {
@@ -203,4 +301,15 @@ class DummyPlatformAdapter : PlatformAdapter {
 
     override fun shareLog() {
     }
+
+    override fun registerWithDigitalCredentialsAPI(entries: CredentialsContainer) {
+    }
+
+    override fun getCurrentDCAPIData(): DCAPIRequest? {
+        return null
+    }
+
+    override fun prepareDCAPICredentialResponse(responseJson: ByteArray, dcApiRequest: DCAPIRequest) {
+    }
+
 }

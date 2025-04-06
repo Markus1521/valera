@@ -1,13 +1,18 @@
 package at.asitplus.wallet.app.common
 
-enum class BuildEnvironment(val abbreviation: String) {
-    Development("D"),
-    QualityAssurance("Q"),
-    Production("P");
-}
-
 data class BuildContext(
-    val buildType: String,
+    val buildType: BuildType,
+    /** Something like `at.asitplus.wallet.app.android` */
+    val packageName: String,
+    /** Something like `50140` */
     val versionCode: Int,
+    /** Something like `5.4.0` */
     val versionName: String,
+    /** Something like `Android 15` or `iOS 16` */
+    val osVersion: String,
 )
+
+enum class BuildType(val stringRepresentaiton: String) {
+    DEBUG("debug"),
+    RELEASE("release")
+}

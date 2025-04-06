@@ -6,16 +6,18 @@ struct ComposeView: UIViewControllerRepresentable {
     
     func makeUIViewController(context: Context) -> UIViewController {
         #if DEBUG
-        let buildType = "debug"
+        let buildType = BuildType.debug
         #else
-        let buildType = "release"
+        let buildType = BuildType.release_
         #endif
         return Main_iosKt.MainViewController(
             platformAdapter: SwiftPlatformAdapter(),
             buildContext: BuildContext(
                 buildType: buildType,
+                packageName: Bundle.main.bundleIdentifier ?? "at.asitplus.wallet.compose",
                 versionCode: Bundle.main.infoDictionary?["CFBundleVersion"] as? Int32 ?? 1,
-                versionName: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String  ?? "1.0.0"
+                versionName: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String  ?? "1.0.0",
+                osVersion: "iOS " + UIDevice.current.systemVersion
             )
         )
     }
@@ -28,19 +30,19 @@ struct ContentView: View {
         ComposeView()
                 .ignoresSafeArea(.keyboard) // Compose has own keyboard handler
                 .onOpenURL { url in
-                    AppKt.appLink.setValue(url.absoluteString)
+                    Globals.shared.appLink.setValue(url.absoluteString)
                 }
     }
 }
 
 class SwiftPlatformAdapter: PlatformAdapter {
-    func openUrl(url: String){
+
+    func openUrl(url: String) {
         DispatchQueue.main.async {
             if let uri = URL(string: url) {
                 UIApplication.shared.open(uri)
             }
         }
-        
     }
 
     func writeToFile(text: String, fileName: String, folderName: String) {
@@ -116,6 +118,17 @@ class SwiftPlatformAdapter: PlatformAdapter {
                 currentController?.present(activityViewController, animated: true, completion: {})
             }
         }
+    }
+
+    //TODO: implement
+    func registerWithDigitalCredentialsAPI(entries: CredentialsContainer) {
+    }
+
+    func getCurrentDCAPIData() -> DCAPIRequest? {
+        return nil
+    }
+
+    func prepareDCAPICredentialResponse(responseJson: KotlinByteArray, dcApiRequest: DCAPIRequest) {
     }
 }
 

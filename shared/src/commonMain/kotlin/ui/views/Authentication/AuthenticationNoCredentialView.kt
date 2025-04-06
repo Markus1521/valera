@@ -1,4 +1,4 @@
-package ui.views.Authentication
+package ui.views.authentication
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,15 +7,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,7 +25,7 @@ import at.asitplus.valera.resources.button_label_continue
 import at.asitplus.valera.resources.info_text_no_matching_credential
 import at.asitplus.valera.resources.info_text_to_start_screen
 import org.jetbrains.compose.resources.stringResource
-import ui.viewmodels.Authentication.AuthenticationNoCredentialViewModel
+import ui.viewmodels.authentication.AuthenticationNoCredentialViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,9 +39,7 @@ fun AuthenticationNoCredentialView(vm: AuthenticationNoCredentialViewModel) {
         },
         bottomBar = {
             Surface(
-                color = MaterialTheme.colorScheme.surfaceColorAtElevation(
-                    BottomAppBarDefaults.ContainerElevation
-                )
+                color = NavigationBarDefaults.containerColor,
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,

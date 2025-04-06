@@ -13,6 +13,9 @@
     <string name="snackbar_credential_loaded_successfully">Data has been loaded successfully</string>
     <string name="snackbar_reset_app_successfully">App has been reset successfully</string>
     <string name="snackbar_clear_log_successfully">Log has been cleared successfully</string>
+    <string name="snackbar_update_hint">Your app version is out-of-date, please visit %1$s to update to %2$s</string>
+    <string name="snackbar_update_action">Open</string>
+    <string name="snackbar_sign_successful">Signed successfully</string>
 
     <string name="button_label_use_device_credential">Passcode</string>
     <string name="button_label_confirm">Confirm</string>
@@ -39,20 +42,20 @@
     <string name="button_label_data_protection_policy">Privacy policy</string>
     <string name="button_label_share_log_file">Share Log-File</string>
     <string name="button_label_reset_app">Reset App</string>
-    <string name="button_label_all_missing_data">All new Data</string>
-    <string name="button_label_all_available_data">All existing Data</string>
     <string name="button_label_clear_log">Clear Log</string>
     <string name="button_label_provision_credential_browser">Load via Browser</string>
     <string name="button_label_provision_credential_qr">Load via QR-Code</string>
     <string name="button_label_select">Select</string>
     <string name="button_label_show_technical_details">Show technical details</string>
     <string name="button_label_hide_technical_details">Hide technical details</string>
+    <string name="button_label_sign">Sign</string>
 
     <string name="attribute_friendly_name_bpk">BPK</string>
     <string name="attribute_friendly_name_firstname">Given name</string>
     <string name="attribute_friendly_name_lastname">Family name</string>
     <string name="attribute_friendly_name_date_of_birth">Birth date</string>
     <string name="attribute_friendly_name_portrait">Portrait</string>
+    <string name="attribute_friendly_name_age_at_least_12">At least 12 years old</string>
     <string name="attribute_friendly_name_age_at_least_14">At least 14 years old</string>
     <string name="attribute_friendly_name_age_at_least_16">At least 16 years old</string>
     <string name="attribute_friendly_name_age_at_least_18">At least 18 years old</string>
@@ -92,6 +95,9 @@
 
     <string name="attribute_friendly_name_country_code">Country code</string>
     <string name="attribute_friendly_name_one_time_token">One-time token</string>
+    <string name="attribute_friendly_name_health_insurance_id">Health insurance ID</string>
+    <string name="attribute_friendly_name_patient_id">Patient ID</string>
+    <string name="attribute_friendly_name_e_prescription_code">ePrescription Code</string>
     <string name="attribute_friendly_name_valid_until">Valid until</string>
 
     <string name="id_austria_credential_attribute_friendly_name_main_address_street">Street</string>
@@ -110,13 +116,49 @@
     <string name="attribute_friendly_name_effective_from_date">Effective from</string>
     <string name="attribute_friendly_name_effective_until_date">Effective until</string>
     <string name="attribute_friendly_name_administrative_number">Administrative number</string>
+    <string name="attribute_friendly_name_personal_administrative_number">Personal administrative number</string>
+    <string name="attribute_friendly_name_email_address">eMail address</string>
+    <string name="attribute_friendly_name_mobile_phone_number">Mobile phone number</string>
+    <string name="attribute_friendly_name_trust_anchor">Trust anchor</string>
+    <string name="attribute_friendly_name_location_status">Status URL</string>
     <string name="attribute_friendly_name_issuing_jurisdiction">Issuing jurisdiction</string>
-
     <string name="attribute_friendly_name_residence_address">Residence address</string>
+    <string name="attribute_friendly_name_residence_address_po_box">PO box</string>
+    <string name="attribute_friendly_name_residence_address_thoroughfare">Thoroughfare</string>
+    <string name="attribute_friendly_name_residence_address_locator_designator">Locator designator</string>
+    <string name="attribute_friendly_name_residence_address_locator_name">Locator name</string>
+    <string name="attribute_friendly_name_residence_address_post_code">Post code</string>
+    <string name="attribute_friendly_name_residence_address_post_name">Post name</string>
+    <string name="attribute_friendly_name_residence_address_admin_unit_L1">L1</string>
+    <string name="attribute_friendly_name_residence_address_admin_unit_L2">L2</string>
+    <string name="attribute_friendly_name_residence_address_full_address">Full address</string>
     <string name="attribute_friendly_name_arrival_date">Arrival date</string>
+
+    <string name="attribute_friendly_name_company_name">Name</string>
+    <string name="attribute_friendly_name_company_type">Type</string>
+    <string name="attribute_friendly_name_company_status">Status</string>
+    <string name="attribute_friendly_name_company_activity">Activity</string>
+    <string name="attribute_friendly_name_registration_date">Registration date</string>
+    <string name="attribute_friendly_name_company_end_date">End date</string>
+    <string name="attribute_friendly_name_company_euid">EUID</string>
+    <string name="attribute_friendly_name_vat_number">VAT number</string>
+    <string name="attribute_friendly_name_contact_data">Contact data</string>
+    <string name="attribute_friendly_name_registered_address">Registered address</string>
+    <string name="attribute_friendly_name_postal_address">Postal address</string>
+    <string name="attribute_friendly_name_branch">Branch</string>
 
     <string name="attribute_friendly_name_data_recipient_name">Name</string>
     <string name="attribute_friendly_name_data_recipient_location">Location</string>
+
+    <string name="attribute_friendly_name_tax_number">Tax number</string>
+    <string name="attribute_friendly_name_affiliation_country">Affiliation country</string>
+    <string name="attribute_friendly_name_registered_family_name">Registered family name</string>
+    <string name="attribute_friendly_name_registered_given_name">Registered given name</string>
+    <string name="attribute_friendly_name_resident_address">Resident address</string>
+    <string name="attribute_friendly_name_church_tax_id">Church tax id</string>
+    <string name="attribute_friendly_name_iban">IBAN</string>
+    <string name="attribute_friendly_name_pid_id">PID ID</string>
+    <string name="attribute_friendly_name_verification_status">Verification status</string>
 
     <string name="credential_representation_format_label_plain_jwt">Plain JWT</string>
     <string name="credential_representation_format_label_sd_jwt">SD-JWT</string>
@@ -126,6 +168,7 @@
     <string name="issuing_label_scheme">Scheme</string>
     <string name="issuing_label_representation">Representation</string>
     <string name="issuing_label_transaction_code">Transaction code</string>
+    <string name="issuing_label_information">All available data will be loaded</string>
 
     <string name="credential_scheme_icon_label_mdl">mDL</string>
     <string name="credential_scheme_label_mdl">mDL</string>
@@ -137,11 +180,14 @@
     <string name="credential_scheme_label_power_of_representation">Power of representation</string>
     <string name="credential_scheme_icon_label_certificate_of_residence">COR</string>
     <string name="credential_scheme_label_certificate_of_residence">Certificate of residence</string>
-    <string name="credential_scheme_label_epresciption">e-Prescription</string>
+    <string name="credential_scheme_icon_label_company_registration">CR</string>
+    <string name="credential_scheme_label_company_registration">Company registration</string>
+    <string name="credential_scheme_label_healthid">HealthID</string>
+    <string name="credential_scheme_icon_label_healthid">HIID</string>
+    <string name="credential_scheme_label_tax_id">Tax ID</string>
+    <string name="credential_scheme_icon_label_tax_id">TAX</string>
 
-
-
-    <string name="navigation_button_label_show_data">Show Data</string>
+    <string name="navigation_button_label_show_data">Present Data</string>
     <string name="navigation_button_label_my_data">My Data</string>
     <string name="navigation_button_label_settings">Settings</string>
 
@@ -160,6 +206,15 @@
     <string name="text_label_build_type">Build</string>
     <string name="text_label_version">Version</string>
     <string name="text_label_build">Build</string>
+    <string name="text_label_qtsp">QTSP</string>
+    <string name="text_label_preload_certificate">Preload certificate</string>
+    <string name="text_label_delete_certificate">Delete certificate</string>
+    <string name="text_label_credential_id">Credential ID</string>
+    <string name="text_label_valid_from">Valid from</string>
+    <string name="text_label_valid_to">Valid to</string>
+    <string name="text_label_optional">Optional</string>
+    <string name="text_label_check_all">Check all</string>
+    <string name="text_label_powered_by">POWERED BY</string>
 
     <string name="heading_label_authenticate_at_device_title">Authenticate</string>
     <string name="heading_label_authenticate_at_device_subtitle">at relying party</string>
@@ -181,6 +236,7 @@
     <string name="heading_label_add_credential_screen">Load data</string>
     <string name="heading_label_refresh_data_screen">Load data</string>
     <string name="heading_label_authenticate_at_device_screen">Authenticate at\nrelying party</string>
+    <string name="heading_label_sign_document">Sign document</string>
 
     <string name="description_read_terms">Please read and accept the terms of use and the privacy policy.</string>
 
@@ -214,6 +270,9 @@
     <string name="error_biometric_status_unknown">BIOMETRIC_STATUS_UNKNOWN</string>
     <string name="error_biometric_error_none_enrolled">BIOMETRIC_ERROR_NONE_ENROLLED</string>
     <string name="error_biometric_error_unknown">error_biometric_error_unknown</string>
+    <string name="error_complex_dcql_query">Complex DCQL Queries are not yet supported.</string>
+    <string name="error_invalid_dcql_query">Invalid DCQL Query.</string>
+    <string name="error_unsatisfiable_dcql_query">DCQL Query cannot be satisfied.</string>
     <string name="error_qr_code_scanning_missing_request_uri">Missing Parameter `request_uri`</string>
     <string name="error_qr_code_scanning_missing_client_metadata">Missing Parameter `metadata_uri`</string>
     <string name="error_request_uri_redirect_missing_location_header">Missing location response header</string>
@@ -267,13 +326,15 @@
     <string name="section_heading_biometric_data_icon_text">BIO</string>
     <string name="section_heading_representation_data">Representation</string>
     <string name="section_heading_representation_data_icon_text">REP</string>
+    <string name="section_heading_company_data">Company</string>
+    <string name="section_heading_company_data_icon_text">CO</string>
     <string name="section_heading_metadata">Metadata</string>
     <string name="section_heading_metadata_icon_text">M</string>
     <string name="section_heading_residence_data">Residence</string>
     <string name="section_heading_residence_data_icon_text">RES</string>
-    <string name="section_heading_load_data_selection">Available data</string>
     <string name="section_heading_missing_data">Load new data</string>
     <string name="section_heading_available_data">Refresh existing data</string>
+    <string name="section_heading_transaction_data">Transaction</string>
 
     <string name="onboarding_section_terms_and_data_protection_icon_text">1</string>
     <string name="onboarding_section_terms_and_data_protection_title">Terms of use and privacy policy</string>
@@ -286,4 +347,14 @@
 
     <string name="warning_requested_data_not_available_heading">Requested Data is not available</string>
     <string name="warning_requested_data_not_available_content">Not all requested data has already been loaded into the app.\nMissing data can be loaded via ID Austria.</string>
+
+    <string name="presentation_connecting_to_verifier">Connecting to verifier. Please wait.</string>
+    <string name="presentation_success">The information was shared</string>
+    <string name="presentation_error">Something went wrong</string>
+    <string name="presentation_canceled">Presentment was canceled</string>
+    <string name="presentation_timeout">Timed out waiting for reader</string>
+    <string name="presentation_waiting_for_request">Waiting for request</string>
+    <string name="presentation_missing_permission">Presentation cannot be finished without permissions.</string>
+    <string name="presentation_permission_required">Checking if required permissions are set…</string>
+    <string name="presentation_initialised">Presentation initialising…</string>
 </resources>

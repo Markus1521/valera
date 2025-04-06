@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.AlertDialog
@@ -29,6 +30,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import at.asitplus.valera.resources.Res
@@ -40,14 +42,15 @@ import at.asitplus.valera.resources.button_label_faq
 import at.asitplus.valera.resources.button_label_licenses
 import at.asitplus.valera.resources.button_label_reset_app
 import at.asitplus.valera.resources.button_label_share_log_file
+import at.asitplus.valera.resources.button_label_sign
 import at.asitplus.valera.resources.heading_label_settings_screen
 import at.asitplus.valera.resources.reset_app_alert_text
 import at.asitplus.valera.resources.section_heading_actions
 import at.asitplus.valera.resources.section_heading_information
 import at.asitplus.valera.resources.text_label_build
-import at.asitplus.valera.resources.text_label_stage
 import at.asitplus.valera.resources.warning
 import org.jetbrains.compose.resources.stringResource
+import ui.composables.Logo
 import ui.viewmodels.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,10 +77,15 @@ fun SettingsView(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        stringResource(Res.string.heading_label_settings_screen),
-                        style = MaterialTheme.typography.headlineLarge
-                    )
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            stringResource(Res.string.heading_label_settings_screen),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.headlineLarge
+                        )
+                        Logo(onClick = vm.onClickLogo)
+                        Spacer(Modifier.width(8.dp))
+                    }
                 },
             )
         },
@@ -175,15 +183,27 @@ fun SettingsView(
                             },
                             modifier = listSpacingModifier.fillMaxWidth(),
                         )
+                        TextIconButtonListItem(
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Key,
+                                    contentDescription = null,
+                                )
+                            },
+                            label = stringResource(Res.string.button_label_sign),
+                            onClick = {
+                                vm.onClickSigning()
+                            },
+                            modifier = listSpacingModifier.fillMaxWidth(),
+                        )
                     }
                 }
                 Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
                     Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.Center,
                         modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp)
                             .fillMaxWidth()
                     ) {
-                        Text("${stringResource(Res.string.text_label_stage)}: ${vm.stage})")
                         Text("${stringResource(Res.string.text_label_build)}: ${vm.version}-${vm.buildType}")
                     }
                 }

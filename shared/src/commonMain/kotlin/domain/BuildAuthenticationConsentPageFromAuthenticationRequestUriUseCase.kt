@@ -4,8 +4,7 @@ import at.asitplus.KmmResult
 import at.asitplus.wallet.app.common.PresentationService
 import at.asitplus.wallet.lib.data.vckJsonSerializer
 import io.github.aakira.napier.Napier
-import kotlinx.serialization.encodeToString
-import ui.navigation.Routes.AuthenticationViewRoute
+import ui.navigation.routes.AuthenticationViewRoute
 
 class BuildAuthenticationConsentPageFromAuthenticationRequestUriUseCase(
     val presentationService: PresentationService,
@@ -26,6 +25,7 @@ class BuildAuthenticationConsentPageFromAuthenticationRequestUriUseCase(
                 authenticationRequestParametersFromSerialized = vckJsonSerializer.encodeToString(request),
                 authorizationPreparationStateSerialized = vckJsonSerializer.encodeToString(preparationState),
                 recipientLocation = request.parameters.clientId ?: "",
+                isCrossDeviceFlow = false,
             )
         )
     }

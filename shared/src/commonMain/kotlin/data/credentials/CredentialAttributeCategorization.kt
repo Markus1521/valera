@@ -1,14 +1,17 @@
 package data.credentials
 
 import at.asitplus.jsonpath.core.NormalizedJsonPath
+import at.asitplus.wallet.companyregistration.CompanyRegistrationScheme
 import at.asitplus.wallet.cor.CertificateOfResidenceScheme
-import at.asitplus.wallet.eprescription.EPrescriptionScheme
 import at.asitplus.wallet.eupid.EuPidScheme
+import at.asitplus.wallet.healthid.HealthIdScheme
 import at.asitplus.wallet.idaustria.IdAustriaScheme
 import at.asitplus.wallet.lib.data.ConstantIndex
 import at.asitplus.wallet.mdl.MobileDrivingLicenceScheme
 import at.asitplus.wallet.por.PowerOfRepresentationScheme
+import at.asitplus.wallet.taxid.TaxIdScheme
 import data.PersonalDataCategory
+import data.credentialsdatacard.CompanyRegistrationCredentialAttributeCategorization
 
 /**
  * The type, `List<AttributeUnpackingInformation>`, is there to
@@ -19,22 +22,24 @@ typealias AttributeUnpackingInformation = Pair<NormalizedJsonPath, List<Normaliz
 
 interface CredentialAttributeCategorization {
     companion object {
-        operator fun get(scheme: ConstantIndex.CredentialScheme?): Template = when (scheme) {
+        fun load(
+            scheme: ConstantIndex.CredentialScheme?,
+            representation: ConstantIndex.CredentialRepresentation
+        ): Template = when (scheme) {
             is IdAustriaScheme -> IdAustriaCredentialAttributeCategorization
-            is EuPidScheme -> EuPidCredentialAttributeCategorization
+            is EuPidScheme -> // TODO When mapping is confirmed if (representation == ConstantIndex.CredentialRepresentation.SD_JWT) EuPidCredentialSdJwtAttributeCategorization else EuPidCredentialAttributeCategorization
+                EuPidCredentialAttributeCategorization
             is MobileDrivingLicenceScheme -> MobileDrivingLicenceCredentialAttributeCategorization
             is PowerOfRepresentationScheme -> PowerOfRepresentationCredentialAttributeCategorization
             is CertificateOfResidenceScheme -> CertificateOfResidenceCredentialAttributeCategorization
-            is EPrescriptionScheme -> EPrescriptionCredentialAttributeCategorization
+            is CompanyRegistrationScheme -> CompanyRegistrationCredentialAttributeCategorization
+            is HealthIdScheme -> HealthIdCredentialAttributeCategorization
+            is TaxIdScheme -> TaxIdCredentialAttributeCategorization
             else -> EmptyCredentialAttributeCategorization
         }
     }
 
     operator fun get(personalDataCategory: PersonalDataCategory): List<AttributeUnpackingInformation>?
-
-    val availableCategories: Set<PersonalDataCategory>
-
-    val sourceAttributeCategorization: Map<PersonalDataCategory, List<NormalizedJsonPath>>
 
     abstract class Template(
         categorization: Map<PersonalDataCategory, List<AttributeUnpackingInformation>>,
@@ -46,20 +51,6 @@ interface CredentialAttributeCategorization {
 
         override operator fun get(personalDataCategory: PersonalDataCategory): List<AttributeUnpackingInformation>? {
             return categorization[personalDataCategory]
-        }
-
-        override val availableCategories by lazy {
-            categorization.filter {
-                it.value.isNotEmpty()
-            }.keys
-        }
-
-        override val sourceAttributeCategorization by lazy {
-            categorization.mapValues {
-                it.value.map {
-                    it.first
-                }
-            }
         }
 
         private fun Map<PersonalDataCategory, List<Pair<NormalizedJsonPath, List<NormalizedJsonPath>?>>>.withOthersFrom(

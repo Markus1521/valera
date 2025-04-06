@@ -11,6 +11,7 @@ import at.asitplus.wallet.lib.data.vckJsonSerializer
 import at.asitplus.wallet.lib.iso.IssuerSigned
 import at.asitplus.wallet.mdl.MobileDrivingLicenceScheme
 import data.storage.ExportableCredentialScheme.Companion.toExportableCredentialScheme
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -138,12 +139,18 @@ class PersistentSubjectCredentialStore(private val dataStore: DataStoreService) 
         } else {
             val export: ExportableStoreContainer = kotlin.runCatching {
                 vckJsonSerializer.decodeFromString<ExportableStoreContainer>(input)
-            }.getOrElse { _ ->
-                ExportableStoreContainer(
-                    vckJsonSerializer.decodeFromString<OldExportableStoreContainer>(input).credentials.mapIndexed { index, it ->
-                        index.toLong() to it
-                    }
-                )
+            }.getOrElse {
+                Napier.w("dataStoreValueToContainer failed for new format", it)
+                kotlin.runCatching {
+                    ExportableStoreContainer(
+                        vckJsonSerializer.decodeFromString<OldExportableStoreContainer>(input).credentials.mapIndexed { index, it ->
+                            index.toLong() to it
+                        }
+                    )
+                }.getOrElse {
+                    Napier.w("dataStoreValueToContainer failed for old format", it)
+                    ExportableStoreContainer(listOf())
+                }
             }
             val credentials = export.credentials.map {
                 val storeEntryId = it.first
@@ -235,7 +242,7 @@ private sealed interface ExportableStoreEntry {
 }
 
 enum class ExportableCredentialScheme {
-    AtomicAttribute2023, IdAustriaScheme, MobileDrivingLicence2023, EuPidScheme, PowerOfRepresentationScheme, CertificateOfResidenceScheme, EPrescriptionScheme;
+    AtomicAttribute2023, IdAustriaScheme, MobileDrivingLicence2023, EuPidScheme, PowerOfRepresentationScheme, CertificateOfResidenceScheme, CompanyRegistrationScheme, HealthIdScheme, TaxIdScheme;
 
     fun toScheme() = when (this) {
         AtomicAttribute2023 -> ConstantIndex.AtomicAttribute2023
@@ -244,7 +251,9 @@ enum class ExportableCredentialScheme {
         EuPidScheme -> at.asitplus.wallet.eupid.EuPidScheme
         PowerOfRepresentationScheme -> at.asitplus.wallet.por.PowerOfRepresentationScheme
         CertificateOfResidenceScheme -> at.asitplus.wallet.cor.CertificateOfResidenceScheme
-        EPrescriptionScheme -> at.asitplus.wallet.eprescription.EPrescriptionScheme
+        CompanyRegistrationScheme -> at.asitplus.wallet.companyregistration.CompanyRegistrationScheme
+        HealthIdScheme -> at.asitplus.wallet.healthid.HealthIdScheme
+        TaxIdScheme -> at.asitplus.wallet.taxid.TaxIdScheme
     }
 
     companion object {
@@ -255,7 +264,9 @@ enum class ExportableCredentialScheme {
             at.asitplus.wallet.eupid.EuPidScheme -> EuPidScheme
             at.asitplus.wallet.por.PowerOfRepresentationScheme -> PowerOfRepresentationScheme
             at.asitplus.wallet.cor.CertificateOfResidenceScheme -> CertificateOfResidenceScheme
-            at.asitplus.wallet.eprescription.EPrescriptionScheme -> EPrescriptionScheme
+            at.asitplus.wallet.companyregistration.CompanyRegistrationScheme -> CompanyRegistrationScheme
+            at.asitplus.wallet.healthid.HealthIdScheme -> HealthIdScheme
+            at.asitplus.wallet.taxid.TaxIdScheme -> TaxIdScheme
             else -> throw Exception("Unknown CredentialScheme")
         }
     }

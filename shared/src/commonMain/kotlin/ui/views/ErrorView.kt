@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -36,6 +37,7 @@ import at.asitplus.valera.resources.heading_label_error_screen
 import at.asitplus.valera.resources.info_text_error_occurred
 import at.asitplus.valera.resources.info_text_to_start_screen
 import org.jetbrains.compose.resources.stringResource
+import ui.composables.Logo
 import ui.composables.TextIconButton
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,7 +45,8 @@ import ui.composables.TextIconButton
 fun ErrorView(
     resetStack: () -> Unit,
     message: String?,
-    cause: String?
+    cause: String?,
+    onClickLogo: () -> Unit,
 ) {
     val message = message ?: "Unknown Message"
     val cause = cause ?: "Unknown Cause"
@@ -54,10 +57,15 @@ fun ErrorView(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        stringResource(Res.string.heading_label_error_screen),
-                        style = MaterialTheme.typography.headlineLarge,
-                    )
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            stringResource(Res.string.heading_label_error_screen),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.headlineLarge,
+                        )
+                        Logo(onClick = onClickLogo)
+                        Spacer(Modifier.width(8.dp))
+                    }
                 },
                 navigationIcon = {}
             )

@@ -6,13 +6,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -20,8 +23,8 @@ import at.asitplus.valera.resources.Res
 import at.asitplus.valera.resources.heading_label_add_credential_screen
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.stringResource
-import ui.composables.ScreenHeading
-import ui.composables.buttons.LoadDataButton
+import ui.composables.Logo
+import ui.composables.buttons.ContinueButton
 import ui.composables.buttons.NavigateUpButton
 import ui.composables.forms.StatefulSelectIssuingServerForm
 import ui.viewmodels.AddCredentialViewModel
@@ -41,7 +44,14 @@ fun SelectIssuingServerView(
         topBar = {
             TopAppBar(
                 title = {
-                    ScreenHeading(stringResource(Res.string.heading_label_add_credential_screen))
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(Res.string.heading_label_add_credential_screen),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                        Logo(onClick = vm.onClickLogo)
+                    }
                 },
                 navigationIcon = {
                     NavigateUpButton(vm.navigateUp)
@@ -56,7 +66,7 @@ fun SelectIssuingServerView(
                         modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 16.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                     ) {
-                        LoadDataButton(
+                        ContinueButton(
                             onClick = { vm.onSubmitServer(host.text) }
                         )
                     }

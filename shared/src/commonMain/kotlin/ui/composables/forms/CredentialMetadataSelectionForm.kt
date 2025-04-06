@@ -10,13 +10,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import at.asitplus.wallet.app.common.credentialScheme
-import at.asitplus.wallet.app.common.third_party.at.asitplus.wallet.lib.data.uiLabel
-import at.asitplus.wallet.lib.ktor.openid.CredentialIdentifierInfo
 import at.asitplus.valera.resources.Res
 import at.asitplus.valera.resources.issuing_label_host
+import at.asitplus.valera.resources.issuing_label_information
 import at.asitplus.valera.resources.issuing_label_representation
 import at.asitplus.valera.resources.issuing_label_scheme
+import at.asitplus.wallet.app.common.credentialScheme
+import at.asitplus.wallet.app.common.thirdParty.at.asitplus.wallet.lib.data.uiLabel
+import at.asitplus.wallet.lib.ktor.openid.CredentialIdentifierInfo
 import at.asitplus.wallet.lib.oidvci.toRepresentation
 import org.jetbrains.compose.resources.stringResource
 import ui.composables.inputFields.StatefulCredentialIdentifierInputField
@@ -74,6 +75,12 @@ fun CredentialMetadataSelectionForm(
             Text(": ")
             Text(
                 text = credentialIdentifierInfo.supportedCredentialFormat.format.toRepresentation().uiLabel(),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        }
+        Row(modifier = modifier) {
+            Text(
+                text = stringResource(Res.string.issuing_label_information),
                 style = MaterialTheme.typography.bodyLarge,
             )
         }

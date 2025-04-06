@@ -1,16 +1,26 @@
-package ui.views.Authentication
+package ui.views.authentication
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import ui.viewmodels.Authentication.AuthenticationAttributesSelectionViewModel
-import ui.viewmodels.Authentication.AuthenticationConsentViewModel
-import ui.viewmodels.Authentication.AuthenticationCredentialSelectionViewModel
-import ui.viewmodels.Authentication.AuthenticationNoCredentialViewModel
-import ui.viewmodels.Authentication.AuthenticationViewModel
-import ui.viewmodels.Authentication.AuthenticationViewState
+import at.asitplus.wallet.app.common.decodeImage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.launch
+import ui.viewmodels.authentication.AuthenticationConsentViewModel
+import ui.viewmodels.authentication.AuthenticationNoCredentialViewModel
+import ui.viewmodels.authentication.AuthenticationSelectionDCQLView
+import ui.viewmodels.authentication.AuthenticationSelectionPresentationExchangeViewModel
+import ui.viewmodels.authentication.AuthenticationViewModel
+import ui.viewmodels.authentication.AuthenticationViewState
+import ui.viewmodels.authentication.DCQLMatchingResult
+import ui.viewmodels.authentication.PresentationExchangeMatchingResult
 
 @Composable
-fun AuthenticationView(vm: AuthenticationViewModel) {
+fun AuthenticationView(
+    vm: AuthenticationViewModel,
+    onError: (Throwable) -> Unit,
+) {
     val vm = remember { vm }
     vm.walletMain.cryptoService.onUnauthenticated = vm.navigateUp
 
@@ -20,41 +30,56 @@ fun AuthenticationView(vm: AuthenticationViewModel) {
                 spName = vm.spName,
                 spLocation = vm.spLocation,
                 spImage = vm.spImage,
-                requests = vm.parametersMap,
+                transactionData = vm.transactionData,
                 navigateUp = vm.navigateUp,
-                buttonConsent = { vm.onConsent() },
-                walletMain = vm.walletMain
+                buttonConsent = {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        vm.onConsent()
+                    }
+                },
+                walletMain = vm.walletMain,
+                presentationRequest = vm.presentationRequest,
+                onClickLogo = vm.onClickLogo
             )
-            AuthenticationConsentView(viewModel)
-        }
-
-        AuthenticationViewState.CredentialSelection -> {
-            val viewModel = AuthenticationCredentialSelectionViewModel(walletMain = vm.walletMain,
-                requests = vm.requestMap,
-                selectCredentials = { credentials ->
-                    vm.selectCredentials(credentials)
-                }, navigateUp = { vm.viewState = AuthenticationViewState.Consent })
-            AuthenticationCredentialSelectionView(viewModel)
-        }
-
-        AuthenticationViewState.AttributesSelection -> {
-            val viewModel = AuthenticationAttributesSelectionViewModel(navigateUp = {
-                if (vm.matchingCredentials.values.find { it.size != 1 } == null) {
-                    vm.viewState = AuthenticationViewState.Consent
-                } else {
-                    vm.viewState = AuthenticationViewState.CredentialSelection
-                }
-            },
-                requests = vm.requestMap,
-                selectedCredentials = vm.selectedCredentials,
-                selectAttributes = { attributes -> vm.selectAttributes(selectedAttributes = attributes) })
-            AuthenticationAttributesSelectionView(viewModel)
+            AuthenticationConsentView(
+                viewModel,
+                onError = onError,
+            )
         }
 
         AuthenticationViewState.NoMatchingCredential -> {
             val viewModel =
                 AuthenticationNoCredentialViewModel(navigateToHomeScreen = vm.navigateToHomeScreen)
             AuthenticationNoCredentialView(vm = viewModel)
+        }
+
+        AuthenticationViewState.Selection -> {
+            when (val matching = vm.matchingCredentials) {
+                is DCQLMatchingResult -> {
+                    AuthenticationSelectionDCQLView(
+                        navigateUp = vm.navigateUp,
+                        onClickLogo = vm.onClickLogo,
+                        confirmSelection = { vm.confirmSelection(it) },
+                        matchingResult = matching,
+                        decodeToBitmap = { byteArray ->
+                            vm.walletMain.platformAdapter.decodeImage(byteArray)
+                        },
+                        onError = onError,
+                    )
+                }
+
+                is PresentationExchangeMatchingResult -> {
+                    AuthenticationSelectionPresentationExchangeView(
+                        vm = AuthenticationSelectionPresentationExchangeViewModel(
+                            walletMain = vm.walletMain,
+                            confirmSelections = { selections -> vm.confirmSelection(selections) },
+                            navigateUp = { vm.viewState = AuthenticationViewState.Consent },
+                            onClickLogo = vm.onClickLogo,
+                            credentialMatchingResult = matching,
+                        )
+                    )
+                }
+            }
         }
     }
 }
