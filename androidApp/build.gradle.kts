@@ -4,6 +4,7 @@ plugins {
     id("at.asitplus.gradle.conventions")
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
+//    id("org.gradlex.reproducible-builds") version "1.0"
 }
 
 kotlin {
@@ -12,6 +13,7 @@ kotlin {
         androidMain {
             dependencies {
                 implementation(project(":shared"))
+                implementation(libs.play.services.identity.credentials)
             }
         }
     }
@@ -21,11 +23,17 @@ kotlin {
 //    (findProperty("android.cert.password") as String?) ?: System.getenv("ANDROID_CERT_PASSWORD")
 val apkSignerPassword = "testtest"
 
+tasks.withType<Copy>().configureEach {
+    filter { line -> line.replace("\r\n", "\n").trimEnd() }
+}
+
 android {
-    compileSdk = (findProperty("android.compileSdk") as String).toInt()
+    compileSdkVersion((findProperty("android.compileSdk") as String).toInt())
     namespace = "at.asitplus.wallet.app.android"
 
+
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
+
 
     signingConfigs {
         getByName("debug") {
