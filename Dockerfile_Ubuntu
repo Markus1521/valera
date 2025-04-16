@@ -1,0 +1,62 @@
+FROM ubuntu:22.04
+
+# Basic environment setup
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    TZ=Etc/UTC \
+    ANDROID_HOME=/opt/android-sdk \
+    GRADLE_VERSION=8.5 \
+    JAVA_VERSION=17 \
+    SOURCE_DATE_EPOCH=0
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl unzip zip git wget ca-certificates \
+    openjdk-${JAVA_VERSION}-jdk \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Set JAVA_HOME
+ENV JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk-amd64
+ENV PATH=$JAVA_HOME/bin:$PATH
+
+# Install Gradle manually
+RUN curl -fsSL https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -o gradle.zip && \
+    unzip gradle.zip -d /opt/gradle && \
+    rm gradle.zip
+ENV GRADLE_HOME=/opt/gradle/gradle-${GRADLE_VERSION}
+ENV PATH=$GRADLE_HOME/bin:$PATH
+
+# Install Android SDK
+ENV CMDLINE_TOOLS_VERSION=9477386
+RUN mkdir -p ${ANDROID_HOME}/cmdline-tools && \
+    curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip -o sdk.zip && \
+    unzip sdk.zip -d ${ANDROID_HOME}/cmdline-tools && \
+    mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest && \
+    rm sdk.zip
+ENV PATH=${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:$PATH
+
+# Install Android SDK packages
+RUN yes | sdkmanager --licenses && \
+    sdkmanager --update && \
+    sdkmanager \
+      "platform-tools" \
+      "platforms;android-34" \
+      "build-tools;34.0.0"
+
+# Prepare app directory
+WORKDIR /app
+
+# Optional: Copy in source code
+# COPY . .
+
+# Optional: Set timestamps on project files for reproducibility
+# RUN chmod +x ./gradlew && \
+#     find . -exec touch -d "@$SOURCE_DATE_EPOCH" {} +
+
+# Optional: Build project (requires code to be copied in)
+# RUN ./gradlew assembleRelease --no-daemon#
+RUN chmod +x ./gradle && \
+    find . -type -exec touch -d "@${SOURCE_DATE_EPOCH}" {} + || true
+
+CMD ["gradle", "bundleRelease"]

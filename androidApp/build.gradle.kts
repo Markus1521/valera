@@ -4,7 +4,7 @@ plugins {
     id("at.asitplus.gradle.conventions")
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
-//    id("org.gradlex.reproducible-builds") version "1.0"
+    id("org.gradlex.reproducible-builds") version "1.0"
 }
 
 kotlin {

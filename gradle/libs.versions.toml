@@ -12,6 +12,7 @@ healthid = "2.0.0"
 taxid = "1.0.1"
 atomicfu = "0.26.1"
 compose-plugin = "1.7.3"
+composeCompiler = "2.1.20"
 
 [libraries]
 atomicfu = { group = "org.jetbrains.kotlinx", name = "atomicfu", version.ref = "atomicfu" }
@@ -31,4 +32,4 @@ semver = { module = "net.swiftzer.semver:semver", version.ref = "semver" }
 
 [plugins]
 jetbrainsCompose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref="composeCompiler"}
