@@ -1,0 +1,94 @@
+FROM ubuntu:22.04
+
+# Set a fixed SOURCE_DATE_EPOCH for deterministic timestamps
+ENV SOURCE_DATE_EPOCH=0
+
+# Install required dependencies
+RUN apt-get update && \
+    apt-get install -y openjdk-17-jdk wget unzip git curl zip && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set fixed versions
+ENV GRADLE_VERSION=8.5
+ENV ANDROID_SDK_VERSION=9477386
+ENV BUILD_TOOLS_VERSION=34.0.0
+ENV PLATFORM_VERSION=android-34
+
+# Set environment paths
+ENV ANDROID_HOME=/opt/android-sdk
+ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/tools/bin:$ANDROID_HOME/platform-tools:/opt/gradle/bin
+
+# Download and install Gradle
+RUN wget https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip && \
+    unzip gradle-${GRADLE_VERSION}-bin.zip && \
+    mv gradle-${GRADLE_VERSION} /opt/gradle && \
+    rm gradle-${GRADLE_VERSION}-bin.zip
+
+# Install Android SDK Command Line Tools
+RUN mkdir -p ${ANDROID_HOME}/cmdline-tools && \
+    cd ${ANDROID_HOME}/cmdline-tools && \
+    wget https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_SDK_VERSION}_latest.zip -O tools.zip && \
+    unzip tools.zip && \
+    rm tools.zip
+
+#-d ${ANDROID_HOME}/cmdline-tools &&\
+#    mv ${ANDROID_HOME}/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest && \
+
+
+ENV PATH=$PATH:${ANDROID_HOME}/cmdline-tools/cmdline-tools/bin:${ANDROID_HOME}/cmdline-tools/cmdline-tools
+
+RUN echo ${PATH}
+
+# Accept licenses and install platform tools and build tools
+RUN yes | sdkmanager --licenses && \
+    sdkmanager "platform-tools" "platforms;${PLATFORM_VERSION}" "build-tools;${BUILD_TOOLS_VERSION}"
+
+# Copy source code into the container (make sure it's CLEAN, consistent, no generated files yet)
+WORKDIR /app
+COPY . .
+
+# Optional: clean any non-deterministic files
+RUN find . -name "*.iml" -delete && \
+    find . -name ".DS_Store" -delete
+
+# Preconfigure Gradle for reproducibility
+COPY gradle.properties /root/.gradle/gradle.properties
+
+# Build the AAB (Android App Bundle)
+RUN gradle clean bundleRelease --no-daemon --stacktrace
+
+## Install bundletool
+#RUN wget https://github.com/google/bundletool/releases/download/1.15.6/bundletool-all-1.15.6.jar -O /bundletool.jar
+#
+## Build deterministic APK from bundle
+#RUN java -jar /bundletool.jar build-apks \
+#    --bundle=app/build/outputs/bundle/release/app-release.aab \
+#    --output=/app/output.apks \
+#    --ks=/app/keystore.jks \
+#    --ks-key-alias=your_alias \
+#    --ks-pass=pass:your_password \
+#    --key-pass=pass:your_key_password \
+#    --overwrite \
+#    --mode=universal \
+#    --device-spec=/app/phone.spec
+#
+## Extract final APK
+#RUN unzip -p output.apks universal.apk > /app/final.apk
+
+# Suggestions to Ensure Determinism
+#
+#    Lock all dependencies in gradle.properties:
+#
+#org.gradle.caching=true
+#org.gradle.parallel=false
+#org.gradle.daemon=false
+#org.gradle.configureondemand=false
+#android.useAndroidX=true
+#android.enableJetifier=false
+#
+#Use exact dependency versions (not +) in build.gradle.
+#
+#Freeze environment variables affecting timestamps, sorting, locale:
+#
+#ENV TZ=UTC
+#ENV LANG=C.UTF-8

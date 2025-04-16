@@ -59,4 +59,5 @@ WORKDIR /app
 RUN chmod +x ./gradle && \
     find . -type -exec touch -d "@${SOURCE_DATE_EPOCH}" {} + || true
 
-CMD ["gradle", "bundleRelease"]
+#CMD ["gradle", "bundleRelease"]
+RUN ./gradlew bundleRelease
