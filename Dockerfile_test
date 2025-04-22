@@ -2,6 +2,9 @@ FROM ubuntu:22.04
 
 # Set a fixed SOURCE_DATE_EPOCH for deterministic timestamps
 ENV SOURCE_DATE_EPOCH=0
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV TZ=Etc/UTC
 
 # Install required dependencies
 RUN apt-get update && \
@@ -55,6 +58,9 @@ RUN find . -name "*.iml" -delete && \
 COPY gradle.properties /root/.gradle/gradle.properties
 
 # Build the AAB (Android App Bundle)
+RUN chmod +x ./gradle && \
+    find . -type -exec touch -d "@${SOURCE_DATE_EPOCH}" {} + || true
+
 RUN gradle clean bundleRelease --no-daemon --stacktrace
 
 ## Install bundletool
@@ -92,3 +98,7 @@ RUN gradle clean bundleRelease --no-daemon --stacktrace
 #
 #ENV TZ=UTC
 #ENV LANG=C.UTF-8
+
+# Create image  with: docker build -f Dockerilf_test -t test .
+# Start Container with: docker run -d --name android test
+# Copy releaseBundle with: docker cp android:/app/androidApp/build/outputs/bundle/release .
