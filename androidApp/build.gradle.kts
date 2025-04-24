@@ -28,6 +28,15 @@ tasks.withType<Copy>().configureEach {
     filter { line -> line.replace("\r\n", "\n").trimEnd() }
 }
 
+tasks.withType<com.android.build.gradle.internal.tasks.DexArchiveBuilderTask>().configureEach {
+    doFirst {
+        println("Sorting inputs for DEX task: ${name}")
+        inputs.files.files.sorted().forEach {
+            println(" -> ${it.relativeTo(project.projectDir)}")
+        }
+    }
+}
+
 android {
     namespace = "at.asitplus.wallet.app.android"
 
@@ -62,11 +71,18 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         getByName("release") {
+            isMinifyEnabled = true
+            proguardFiles((getDefaultProguardFile("proguard-android-optimize.txt")))
             signingConfig = signingConfigs.getByName("release")
         }
     }
 
+    buildTypes.configureEach {
+        isCrunchPngs = false
+    }
+
     packaging {
+        jniLibs.useLegacyPackaging = true
         resources.excludes += ("META-INF/versions/9/OSGI-INF/MANIFEST.MF")
     }
 }
