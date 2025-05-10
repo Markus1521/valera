@@ -78,8 +78,8 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         getByName("release") {
-            isMinifyEnabled = true
-            proguardFiles((getDefaultProguardFile("proguard-android-optimize.txt")))
+//            isMinifyEnabled = true
+//            proguardFiles((getDefaultProguardFile("proguard-android-optimize.txt")))
             signingConfig = signingConfigs.getByName("release")
         }
     }
