@@ -61,7 +61,7 @@ COPY gradle.properties /root/.gradle/gradle.properties
 RUN chmod +x ./gradle && \
     find . -type -exec touch -d "@${SOURCE_DATE_EPOCH}" {} + || true
 
-RUN gradle clean bundleRelease --no-daemon --stacktrace
+RUN ./gradlew clean bundleRelease --no-daemon --stacktrace
 
 ## Install bundletool
 #RUN wget https://github.com/google/bundletool/releases/download/1.15.6/bundletool-all-1.15.6.jar -O /bundletool.jar
