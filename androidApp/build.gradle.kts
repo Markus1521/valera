@@ -8,14 +8,21 @@ plugins {
 val apkSignerPassword =
     (findProperty("android.cert.password") as String?) ?: System.getenv("ANDROID_CERT_PASSWORD")
 
-tasks.withType<com.android.build.gradle.internal.tasks.DexArchiveBuilderTask>().configureEach {
-    doFirst {
-        println("Sorting inputs for DEX task: ${name}")
-        inputs.files.files.sorted().forEach {
-            println(" -> ${it.relativeTo(project.projectDir)}")
-        }
-    }
-}
+//tasks.withType<com.android.build.gradle.internal.tasks.DexArchiveBuilderTask>().configureEach {
+//    doFirst {
+//        println("Sorting inputs for DEX task: ${name}")
+//        inputs.files.files.sorted().forEach {
+//            println(" -> ${it.relativeTo(project.projectDir)}")
+//        }
+//    }
+//}
+
+//tasks.withType<AbstractArchiveTask>().configureEach {
+//    isPreserveFileTimestamps = false
+//    isReproducibleFileOrder = true
+//}
+
+
 
 android {
     namespace = "at.asitplus.wallet.app.android"
