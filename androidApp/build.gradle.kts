@@ -37,12 +37,10 @@ tasks.withType<Copy>().configureEach {
 //    }
 //}
 
-//tasks.withType<AbstractArchiveTask>().configureEach {
-//    isPreserveFileTimestamps = false
-//    isReproducibleFileOrder = true
-//}
-
-
+tasks.withType<AbstractArchiveTask>().configureEach {
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
+}
 
 android {
     namespace = "at.asitplus.wallet.app.android"
@@ -78,7 +76,7 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         getByName("release") {
-//            isMinifyEnabled = true
+//            isMinifyEnabled = true    // this makes the two builds the same (tested in docker)
 //            proguardFiles((getDefaultProguardFile("proguard-android-optimize.txt")))
             signingConfig = signingConfigs.getByName("release")
         }
