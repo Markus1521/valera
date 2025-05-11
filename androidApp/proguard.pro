@@ -1,0 +1,67 @@
+-dontshrink
+-dontobfuscate
+-dontoptimize
+-keep class ** { *; }
+
+-dontwarn androidx.test.platform.app.InstrumentationRegistry
+-dontwarn io.ktor.client.plugins.HttpTimeout$HttpTimeoutCapabilityConfiguration
+-dontwarn io.ktor.client.plugins.HttpTimeout$Plugin
+-dontwarn io.ktor.client.plugins.HttpTimeout
+-dontwarn jakarta.servlet.ServletRequest
+-dontwarn jakarta.servlet.http.HttpServletRequest
+-dontwarn jakarta.servlet.http.HttpServletResponse
+-dontwarn java.lang.management.ManagementFactory
+-dontwarn java.lang.management.RuntimeMXBean
+-dontwarn javax.naming.Binding
+-dontwarn javax.naming.NamingEnumeration
+-dontwarn javax.naming.NamingException
+-dontwarn javax.naming.directory.Attribute
+-dontwarn javax.naming.directory.Attributes
+-dontwarn javax.naming.directory.DirContext
+-dontwarn javax.naming.directory.InitialDirContext
+-dontwarn javax.naming.directory.SearchControls
+-dontwarn javax.naming.directory.SearchResult
+-dontwarn javax.servlet.ServletRequest
+-dontwarn javax.servlet.http.HttpServletRequest
+-dontwarn javax.servlet.http.HttpServletResponse
+-dontwarn net.shibboleth.utilities.java.support.xml.SerializeSupport
+-dontwarn org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider
+-dontwarn org.cryptomator.siv.SivMode
+-dontwarn org.joda.time.DateTime
+-dontwarn org.opensaml.core.config.InitializationException
+-dontwarn org.opensaml.core.config.InitializationService
+-dontwarn org.opensaml.core.xml.XMLObject
+-dontwarn org.opensaml.core.xml.XMLObjectBuilder
+-dontwarn org.opensaml.core.xml.XMLObjectBuilderFactory
+-dontwarn org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport
+-dontwarn org.opensaml.core.xml.io.Marshaller
+-dontwarn org.opensaml.core.xml.io.MarshallerFactory
+-dontwarn org.opensaml.core.xml.io.MarshallingException
+-dontwarn org.opensaml.core.xml.io.Unmarshaller
+-dontwarn org.opensaml.core.xml.io.UnmarshallerFactory
+-dontwarn org.opensaml.core.xml.io.UnmarshallingException
+-dontwarn org.opensaml.core.xml.schema.XSString
+-dontwarn org.opensaml.core.xml.schema.impl.XSStringBuilder
+-dontwarn org.opensaml.saml.saml2.core.Assertion
+-dontwarn org.opensaml.saml.saml2.core.Attribute
+-dontwarn org.opensaml.saml.saml2.core.AttributeStatement
+-dontwarn org.opensaml.saml.saml2.core.AttributeValue
+-dontwarn org.opensaml.saml.saml2.core.Audience
+-dontwarn org.opensaml.saml.saml2.core.AudienceRestriction
+-dontwarn org.opensaml.saml.saml2.core.AuthnContext
+-dontwarn org.opensaml.saml.saml2.core.AuthnContextClassRef
+-dontwarn org.opensaml.saml.saml2.core.AuthnStatement
+-dontwarn org.opensaml.saml.saml2.core.Conditions
+-dontwarn org.opensaml.saml.saml2.core.Issuer
+-dontwarn org.opensaml.saml.saml2.core.NameID
+-dontwarn org.opensaml.saml.saml2.core.Subject
+-dontwarn org.opensaml.saml.saml2.core.SubjectConfirmation
+-dontwarn org.opensaml.saml.saml2.core.SubjectConfirmationData
+-dontwarn org.opensaml.saml.security.impl.SAMLSignatureProfileValidator
+-dontwarn org.opensaml.security.credential.BasicCredential
+-dontwarn org.opensaml.security.credential.Credential
+-dontwarn org.opensaml.security.credential.UsageType
+-dontwarn org.opensaml.xmlsec.signature.Signature
+-dontwarn org.opensaml.xmlsec.signature.support.SignatureException
+-dontwarn org.opensaml.xmlsec.signature.support.SignatureValidator
+-dontwarn org.opensaml.xmlsec.signature.support.Signer
