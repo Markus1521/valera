@@ -76,8 +76,9 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         getByName("release") {
-//            isMinifyEnabled = true    // this makes the two builds the same (tested in docker)
+            isMinifyEnabled = true    // this makes the two builds the same (tested in docker)
 //            proguardFiles((getDefaultProguardFile("proguard-android-optimize.txt")))
+            proguardFiles("proguard.pro")
             signingConfig = signingConfigs.getByName("release")
         }
     }
