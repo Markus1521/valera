@@ -2,20 +2,25 @@ package at.asitplus.wallet.app.common.iso.transfer
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import at.asitplus.KmmResult
 import at.asitplus.valera.resources.Res
 import at.asitplus.valera.resources.info_text_nfc_mdoc_reader
-import at.asitplus.wallet.app.common.presentation.TransferSettings.Companion.transferSettings
-import data.document.RequestDocument
+import at.asitplus.wallet.app.common.data.SettingsRepository
+import data.document.RequestDocumentList
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.atTime
+import kotlinx.datetime.toDeprecatedInstant
+import kotlinx.datetime.toInstant
 import kotlinx.io.bytestring.ByteString
 import org.jetbrains.compose.resources.getString
 import org.multipaz.asn1.ASN1Integer
@@ -53,6 +58,7 @@ import org.multipaz.util.fromBase64Url
 
 // based on identity-credential[https://github.com/openwallet-foundation-labs/identity-credential] implementation
 class TransferManager(
+    private val config: SettingsRepository,
     private val scope: CoroutineScope,
     private val updateProgress: (String) -> Unit,
 ) {
@@ -96,97 +102,63 @@ class TransferManager(
     private var readerTransport = mutableStateOf<MdocTransport?>(null)
     private var readerSessionEncryption = mutableStateOf<SessionEncryption?>(null)
 
-
-    // TODO keys taken from identity-credential, replace with our own
-    private val bundledReaderRootKey: EcPrivateKey by lazy {
-        val readerRootKeyPub = EcPublicKey.fromPem(
-            """
-                    -----BEGIN PUBLIC KEY-----
-                    MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE+QDye70m2O0llPXMjVjxVZz3m5k6agT+
-                    wih+L79b7jyqUl99sbeUnpxaLD+cmB3HK3twkA7fmVJSobBc+9CDhkh3mx6n+YoH
-                    5RulaSWThWBfMyRjsfVODkosHLCDnbPV
-                    -----END PUBLIC KEY-----
-                """.trimIndent().trim(),
-            EcCurve.P384
-        )
+    private val readerRootKey: EcPrivateKey by lazy {
         EcPrivateKey.fromPem(
             """
                     -----BEGIN PRIVATE KEY-----
-                    MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDCcRuzXW3pW2h9W8pu5
-                    /CSR6JSnfnZVATq+408WPoNC3LzXqJEQSMzPsI9U1q+wZ2yhZANiAAT5APJ7vSbY
-                    7SWU9cyNWPFVnPebmTpqBP7CKH4vv1vuPKpSX32xt5SenFosP5yYHccre3CQDt+Z
-                    UlKhsFz70IOGSHebHqf5igflG6VpJZOFYF8zJGOx9U4OSiwcsIOds9U=
+                    MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgC42H+ZfAyMq4i3Na
+                    bUrYsgtqflPxsgheWe8eygZ0Xl+gCgYIKoZIzj0DAQehRANCAAQmm+pmyUxx/x2e
+                    D131E8HhvNkhsfYQXzefZlxgLXQPqCOxO+VPOXVOKL0dUy+kHyT5IP/NOAh038co
+                    AVOgGPT4
                     -----END PRIVATE KEY-----
                 """.trimIndent().trim(),
-            readerRootKeyPub
-        )
-    }
-
-    private val bundledReaderRootCert: X509Cert by lazy {
-        MdocUtil.generateReaderRootCertificate(
-            readerRootKey = iacaKey,
-            subject = X500Name.fromName("CN=OWF IC TestApp Reader Root"),
-            serial = ASN1Integer(1L),
-            validFrom = certsValidFrom,
-            validUntil = certsValidUntil,
-        )
-    }
-    private val bundledIacaKey: EcPrivateKey by lazy {
-        val iacaKeyPub = EcPublicKey.fromPem(
-            """
+            EcPublicKey.fromPem(
+                """
                     -----BEGIN PUBLIC KEY-----
-                    MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE+QDye70m2O0llPXMjVjxVZz3m5k6agT+
-                    wih+L79b7jyqUl99sbeUnpxaLD+cmB3HK3twkA7fmVJSobBc+9CDhkh3mx6n+YoH
-                    5RulaSWThWBfMyRjsfVODkosHLCDnbPV
+                    MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEJpvqZslMcf8dng9d9RPB4bzZIbH2
+                    EF83n2ZcYC10D6gjsTvlTzl1Tii9HVMvpB8k+SD/zTgIdN/HKAFToBj0+A==
                     -----END PUBLIC KEY-----
-                """.trimIndent().trim(),
-            EcCurve.P384
+                    """.trimIndent().trim(),
+                EcCurve.P256
+            )
         )
-        EcPrivateKey.fromPem(
+    }
+
+    private val readerRootCert: X509Cert by lazy {
+        X509Cert.fromPem(
             """
-                    -----BEGIN PRIVATE KEY-----
-                    MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDCcRuzXW3pW2h9W8pu5
-                    /CSR6JSnfnZVATq+408WPoNC3LzXqJEQSMzPsI9U1q+wZ2yhZANiAAT5APJ7vSbY
-                    7SWU9cyNWPFVnPebmTpqBP7CKH4vv1vuPKpSX32xt5SenFosP5yYHccre3CQDt+Z
-                    UlKhsFz70IOGSHebHqf5igflG6VpJZOFYF8zJGOx9U4OSiwcsIOds9U=
-                    -----END PRIVATE KEY-----
-                """.trimIndent().trim(),
-            iacaKeyPub
+                -----BEGIN CERTIFICATE-----
+                MIICJzCCAc6gAwIBAgIUSvMftn/oM3etHjE7hdIBl6tWMV8wCgYIKoZIzj0EAwIw
+                MzELMAkGA1UEBhMCQVQxDjAMBgNVBAoMBUEtU0lUMRQwEgYDVQQDDAtWYWxlcmEg
+                SUFDQTAeFw0yNTA2MjYwODI0MDJaFw0yNjA2MjYwODI0MDJaMDMxCzAJBgNVBAYT
+                AkFUMQ4wDAYDVQQKDAVBLVNJVDEUMBIGA1UEAwwLVmFsZXJhIElBQ0EwWTATBgcq
+                hkjOPQIBBggqhkjOPQMBBwNCAAQmm+pmyUxx/x2eD131E8HhvNkhsfYQXzefZlxg
+                LXQPqCOxO+VPOXVOKL0dUy+kHyT5IP/NOAh038coAVOgGPT4o4G/MIG8MBIGA1Ud
+                EwEB/wQIMAYBAf8CAQAwDgYDVR0PAQH/BAQDAgEGMCIGA1UdEgQbMBmGF2h0dHBz
+                Oi8vd2FsbGV0LmEtc2l0LmF0MDIGA1UdHwQrMCkwJ6AloCOGIWh0dHBzOi8vd2Fs
+                bGV0LmEtc2l0LmF0L2NybC8xLmNybDAfBgNVHSMEGDAWgBSDGoj0XuXE3qEVTmPv
+                KSvIvR36ijAdBgNVHQ4EFgQUgxqI9F7lxN6hFU5j7ykryL0d+oowCgYIKoZIzj0E
+                AwIDRwAwRAIgS9XcYA4Be5gDIdHmMOgJ3AeS44gT4bgVgsg/D5+WXS8CIAxJgi3n
+                hGrVMj9SszehLorR2rR5FO5RZgITAaOIGSNP
+                -----END CERTIFICATE-----
+            """.trimIndent().trim()
         )
     }
 
-    val bundledIacaCert: X509Cert by lazy {
-        MdocUtil.generateIacaCertificate(
-            iacaKey = iacaKey,
-            subject = X500Name.fromName("C=ZZ,CN=OWF Identity Credential TEST IACA"),
-            serial = ASN1Integer(1L),
-            validFrom = certsValidFrom,
-            validUntil = certsValidUntil,
-            issuerAltNameUrl = "https://github.com/openwallet-foundation-labs/identity-credential",
-            crlUrl = "https://github.com/openwallet-foundation-labs/identity-credential"
-        )
-    }
-
-    private val certsValidFrom = LocalDate.parse("2024-12-01").atStartOfDayIn(TimeZone.UTC)
-    private val certsValidUntil = LocalDate.parse("2034-12-01").atStartOfDayIn(TimeZone.UTC)
-    private val iacaKey: EcPrivateKey = bundledIacaKey
-    private val readerRootKey: EcPrivateKey = bundledReaderRootKey
-    private val readerRootCert: X509Cert = bundledReaderRootCert
     private val readerKey: EcPrivateKey = Crypto.createEcPrivateKey(EcCurve.P256)
     private val readerCert: X509Cert = MdocUtil.generateReaderCertificate(
         readerRootCert = readerRootCert,
         readerRootKey = readerRootKey,
         readerKey = readerKey.publicKey,
-        subject = X500Name.fromName("CN=OWF IC TestApp Reader Cert"),
+        subject = X500Name.fromName("CN=Valera Reader Cert"),
         serial = ASN1Integer(1L),
-        validFrom = certsValidFrom,
-        validUntil = certsValidUntil,
+        validFrom = LocalDate.parse("2025-06-26").atTime(10, 0).toInstant(TimeZone.UTC).toDeprecatedInstant(),
+        validUntil = LocalDate.parse("2026-06-26").atStartOfDayIn(TimeZone.UTC).toDeprecatedInstant(),
     )
-    private val iacaCert: X509Cert = bundledIacaCert
 
     fun startNfcEngagement(
-        documentRequest: RequestDocument,
-        setDeviceResponseBytes: (ByteArray) -> Unit
+        documentRequestList: RequestDocumentList,
+        setDeviceResponseBytes: (KmmResult<ByteArray>) -> Unit
     ) {
         readerMostRecentDeviceResponse.value = null
 
@@ -194,7 +166,7 @@ class TransferManager(
             try {
                 val negotiatedHandoverConnectionMethods = mutableListOf<MdocConnectionMethod>()
                 val bleUuid = UUID.randomUUID()
-                if (transferSettings.presentmentBleCentralClientModeEnabled.value) {
+                if (config.presentmentBleCentralClientModeEnabled.first()) {
                     negotiatedHandoverConnectionMethods.add(
                         MdocConnectionMethodBle(
                             supportsPeripheralServerMode = false,
@@ -204,7 +176,7 @@ class TransferManager(
                         )
                     )
                 }
-                if (transferSettings.presentmentBlePeripheralServerModeEnabled.value) {
+                if (config.presentmentBlePeripheralServerModeEnabled.first()) {
                     negotiatedHandoverConnectionMethods.add(
                         MdocConnectionMethodBle(
                             supportsPeripheralServerMode = true,
@@ -214,7 +186,7 @@ class TransferManager(
                         )
                     )
                 }
-                if (transferSettings.presentmentNfcDataTransferEnabled.value) {
+                if (config.presentmentNfcDataTransferEnabled.first()) {
                     negotiatedHandoverConnectionMethods.add(
                         MdocConnectionMethodNfc(
                             commandDataFieldMaxLength = 0xffff,
@@ -226,10 +198,10 @@ class TransferManager(
                 scanNfcMdocReader(
                     message = getString(Res.string.info_text_nfc_mdoc_reader),
                     options = MdocTransportOptions(
-                        bleUseL2CAP = transferSettings.readerBleL2CapEnabled.value
+                        bleUseL2CAP = config.readerBleL2CapEnabled.first()
                     ),
                     selectConnectionMethod = { connectionMethods ->
-                        if (transferSettings.readerAutomaticallySelectTransport) {
+                        if (config.readerAutomaticallySelectTransport.first()) {
                             updateProgress("Auto-selected first from $connectionMethods")
                             connectionMethods[0]
                         } else {
@@ -247,7 +219,7 @@ class TransferManager(
                             handover = handover,
                             updateNfcDialogMessage = updateMessage,
                             selectConnectionMethod = { connectionMethods ->
-                                if (transferSettings.readerAutomaticallySelectTransport) {
+                                if (config.readerAutomaticallySelectTransport.first()) {
                                     updateProgress("Auto-selected first from $connectionMethods")
                                     connectionMethods[0]
                                 } else {
@@ -257,7 +229,7 @@ class TransferManager(
                                     )
                                 }
                             },
-                            documentRequest = documentRequest,
+                            documentRequestList = documentRequestList,
                             setDeviceResponseBytes = setDeviceResponseBytes
                         )
                     }
@@ -266,6 +238,7 @@ class TransferManager(
                 // TODO: Add populate error to verifier
                 Napier.e("NFC engagement failed", e)
                 updateProgress("NFC engagement failed with $e")
+                setDeviceResponseBytes(KmmResult.failure(e))
             }
         }
     }
@@ -287,9 +260,9 @@ class TransferManager(
 
     fun doQrFlow(
         qrCode: String,
-        documentRequest: RequestDocument,
+        documentRequestList: RequestDocumentList,
         updateProgress: (String) -> Unit,
-        setDeviceResponseBytes: (ByteArray) -> Unit
+        setDeviceResponseBytes: (KmmResult<ByteArray>) -> Unit
     ) = scope.launch {
         try {
             doReaderFlow(
@@ -298,7 +271,7 @@ class TransferManager(
                 handover = Simple.NULL,
                 updateNfcDialogMessage = updateProgress,
                 selectConnectionMethod = { connectionMethods ->
-                    if (transferSettings.readerAutomaticallySelectTransport) {
+                    if (config.readerAutomaticallySelectTransport.first()) {
                         updateProgress("Auto-selected first from $connectionMethods")
                         connectionMethods[0]
                     } else {
@@ -308,13 +281,13 @@ class TransferManager(
                         )
                     }
                 },
-                documentRequest = documentRequest,
+                documentRequestList = documentRequestList,
                 setDeviceResponseBytes = setDeviceResponseBytes
             )
         } catch (error: Throwable) {
             Napier.e("Caught exception", error)
-            error.printStackTrace()
             updateProgress("Error: ${error.message}")
+            setDeviceResponseBytes(KmmResult.failure(error))
         }
     }
 
@@ -324,8 +297,8 @@ class TransferManager(
         handover: DataItem,
         updateNfcDialogMessage: ((message: String) -> Unit)?,
         selectConnectionMethod: suspend (connectionMethods: List<MdocConnectionMethod>) -> MdocConnectionMethod?,
-        documentRequest: RequestDocument,
-        setDeviceResponseBytes: (ByteArray) -> Unit
+        documentRequestList: RequestDocumentList,
+        setDeviceResponseBytes: (KmmResult<ByteArray>) -> Unit
     ) {
         val deviceEngagement = EngagementParser(encodedDeviceEngagement.toByteArray()).parse()
         val eDeviceKey = deviceEngagement.eSenderKey
@@ -351,7 +324,7 @@ class TransferManager(
             val transport = MdocTransportFactory.Default.createTransport(
                 connectionMethod,
                 MdocRole.MDOC_READER,
-                MdocTransportOptions(bleUseL2CAP = transferSettings.readerBleL2CapEnabled.value)
+                MdocTransportOptions(bleUseL2CAP = config.readerBleL2CapEnabled.first())
             )
             if (transport is NfcTransportMdocReader) {
                 scanNfcTag(
@@ -365,7 +338,7 @@ class TransferManager(
                             updateNfcDialogMessage = updateNfcDialogMessage,
                             eDeviceKey = eDeviceKey,
                             eReaderKey = eReaderKey,
-                            documentRequest = documentRequest,
+                            documentRequestList = documentRequestList,
                             setDeviceResponseBytes = setDeviceResponseBytes
                         )
                     }
@@ -381,7 +354,7 @@ class TransferManager(
             updateNfcDialogMessage = updateNfcDialogMessage,
             eDeviceKey = eDeviceKey,
             eReaderKey = eReaderKey,
-            documentRequest = documentRequest,
+            documentRequestList = documentRequestList,
             setDeviceResponseBytes = setDeviceResponseBytes
         )
     }
@@ -393,8 +366,8 @@ class TransferManager(
         updateNfcDialogMessage: ((message: String) -> Unit)?,
         eDeviceKey: EcPublicKey,
         eReaderKey: EcPrivateKey,
-        documentRequest: RequestDocument,
-        setDeviceResponseBytes: (ByteArray) -> Unit
+        documentRequestList: RequestDocumentList,
+        setDeviceResponseBytes: (KmmResult<ByteArray>) -> Unit
     ) {
         if (updateNfcDialogMessage != null) {
             updateNfcDialogMessage("Transferring data, don't move your phone")
@@ -414,15 +387,18 @@ class TransferManager(
         readerSessionEncryption.value = sessionEncryption
         this.readerSessionTranscript = encodedSessionTranscript
 
-        val encodedDeviceRequest =
-            DeviceRequestGenerator(encodedSessionTranscript).addDocumentRequest(
-                docType = documentRequest.docType,
-                itemsToRequest = documentRequest.itemsToRequest,
+        val generator = DeviceRequestGenerator(encodedSessionTranscript)
+        documentRequestList.getAll().forEach { requestDocument ->
+            generator.addDocumentRequest(
+                docType = requestDocument.docType,
+                itemsToRequest = requestDocument.itemsToRequest,
                 requestInfo = null,
                 readerKey = readerKey,
                 signatureAlgorithm = readerKey.curve.defaultSigningAlgorithm,
-                readerKeyCertificateChain = X509CertChain(listOf(readerCert, readerRootCert)),
-            ).generate()
+                readerKeyCertificateChain = X509CertChain(listOf(readerCert, readerRootCert))
+            )
+        }
+        val encodedDeviceRequest = generator.generate()
 
         try {
             transport.open(eDeviceKey)
@@ -446,7 +422,7 @@ class TransferManager(
                 Napier.i("Holder sent ${message?.size} bytes status $status")
                 if (message != null) {
                     readerMostRecentDeviceResponse.value = message
-                    setDeviceResponseBytes(message)
+                    setDeviceResponseBytes(KmmResult.success(message))
                     _state.value = State.DATA_RECEIVED
                 }
                 if (status == Constants.SESSION_DATA_STATUS_SESSION_TERMINATION) {
@@ -457,7 +433,7 @@ class TransferManager(
                     transport.close()
                     break
                 }
-                if (!transferSettings.presentmentAllowMultipleRequests) {
+                if (!config.presentmentAllowMultipleRequests.first()) {
                     updateProgress("Response received, closing connection")
                     Napier.i(
                         "Holder did not indicate they are closing the connection. " +

@@ -13,9 +13,11 @@ kotlin {
         androidMain.dependencies {
             implementation(project(":shared"))
             implementation(libs.play.services.identity.credentials)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.registry.provider)
 
             implementation(libs.multipaz)
-            implementation(libs.multipaz.android.legacy)
+            implementation(libs.datastore.preferences.core)
         }
     }
 }
@@ -91,12 +93,11 @@ android {
         jniLibs.useLegacyPackaging = true
         resources.excludes += ("META-INF/versions/9/OSGI-INF/MANIFEST.MF")
     }
+    // post_permissions for mulitpaz
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
 }
 dependencies {
     implementation(libs.core.splashscreen)
-}
-
-repositories {
-    maven("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-    maven("https://oss.sonatype.org/content/repositories/snapshots/")
 }

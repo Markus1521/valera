@@ -13,7 +13,7 @@
     <string name="snackbar_credential_loaded_successfully">Daten wurden erfolgreich geladen</string>
     <string name="snackbar_reset_app_successfully">App erfolgreich zurückgesetzt</string>
     <string name="snackbar_clear_log_successfully">Log erfolgreich gelöscht</string>
-    <string name="snackbar_update_hint">App version ist nicht aktuell. Bitte %1$s öffnen um auf %2$s zu aktualisieren.</string>
+    <string name="snackbar_update_hint">App ist nicht aktuell. Bitte auf %1$s aktualisieren.</string>
     <string name="snackbar_update_action">Öffnen</string>
     <string name="snackbar_sign_successful">Signatur erfolgreich</string>
 
@@ -51,11 +51,6 @@
     <string name="button_label_show_technical_details">Technische Details einblenden</string>
     <string name="button_label_hide_technical_details">Technische Details ausblenden</string>
     <string name="button_label_sign">Signieren</string>
-    <string name="button_label_check_identity">Identität Prüfen</string>
-    <string name="button_label_check_license">Führerschein Prüfen</string>
-    <string name="button_label_check_age">Alter Prüfen</string>
-    <string name="button_label_check_custom">Individuelle Anfrage</string>
-    <string name="button_label_check_over_age">Über %1$s</string>
 
     <string name="switch_label_use_negotiated_handover">Negotiated Handover</string>
     <string name="switch_label_use_ble_central_client_mode">BLE Central Client Mode</string>
@@ -111,6 +106,10 @@
     <string name="attribute_friendly_name_driving_privileges">Lenkberechtigungen</string>
     <string name="attribute_friendly_name_distinguishing_sign">Ausstellungsland (Code)</string>
     <string name="attribute_friendly_name_signature_usual_mark">Unterschrift</string>
+    <string name="attribute_friendly_name_biometric_template_face">Biometrie: Gesicht</string>
+    <string name="attribute_friendly_name_biometric_template_finger">Biometrie: Fingerabdruck</string>
+    <string name="attribute_friendly_name_biometric_template_iris">Biometrie: Iris</string>
+    <string name="attribute_friendly_name_biometric_template_signature_sign">Biometrie: Unterschrift</string>
 
     <string name="attribute_friendly_name_country_code">Ländercode</string>
     <string name="attribute_friendly_name_one_time_token">One Time Token</string>
@@ -179,6 +178,13 @@
     <string name="attribute_friendly_name_pid_id">PID ID</string>
     <string name="attribute_friendly_name_verification_status">Verifizierungsstatus</string>
 
+    <string name="attribute_friendly_name_issuing_authority_id">Ausstellende Behörde: ID</string>
+    <string name="attribute_friendly_name_issuing_authority_name">Ausstellende Behörde: Name</string>
+    <string name="attribute_friendly_name_authentic_source">Zuständige Institution</string>
+    <string name="attribute_friendly_name_authentic_source_id">Zuständige Institution: ID</string>
+    <string name="attribute_friendly_name_authentic_source_name">Zuständige Institution: Name</string>
+    <string name="attribute_friendly_name_social_security_number">Sozialversicherungsnummer</string>
+
     <string name="credential_representation_format_label_plain_jwt">Plain JWT</string>
     <string name="credential_representation_format_label_sd_jwt">SD-JWT</string>
     <string name="credential_representation_format_label_mso_mdoc">ISO mDoc</string>
@@ -207,6 +213,8 @@
     <string name="credential_scheme_label_tax_id">Tax ID</string>
     <string name="credential_scheme_label_tax_id_2025">Tax ID (2025)</string>
     <string name="credential_scheme_icon_label_tax_id">TAX</string>
+    <string name="credential_scheme_label_ehic">Europäische Krankenversicherungskarte</string>
+    <string name="credential_scheme_icon_label_ehic">EHIC</string>
 
     <string name="navigation_button_label_show_data">Vorzeigen</string>
     <string name="navigation_button_label_my_data">Daten</string>
@@ -236,11 +244,16 @@
     <string name="text_label_valid_from">Gültig von</string>
     <string name="text_label_valid_to">Gültig bis</string>
     <string name="text_label_optional">Optional</string>
+    <string name="text_label_all_claims_requested">Alle Attribute</string>
     <string name="text_label_check_all">Alle auswählen</string>
     <string name="text_label_powered_by">POWERED BY</string>
     <string name="text_label_certificate">Zertifikat</string>
     <string name="text_label_vda">VDA</string>
     <string name="text_label_no_certificate">Keine Daten verfügbar</string>
+    <string name="text_label_status_uri">Status URI</string>
+    <string name="text_label_status_idx">Status Index</string>
+    <string name="text_label_vcType">VcType</string>
+    <string name="text_label_docType">DocType</string>
 
     <string name="heading_label_authenticate_at_device_title">Anmelden</string>
     <string name="heading_label_authenticate_at_device_subtitle">an Service Provider</string>
@@ -261,21 +274,17 @@
     <string name="heading_label_refresh_data_screen">Daten laden</string>
     <string name="heading_label_authenticate_at_device_screen">Anmelden\nan Service Provider</string>
     <string name="heading_label_sign_document">Dokument signieren</string>
-    <string name="heading_label_select_data_retrieval_screen">Prüfen</string>
-    <string name="heading_label_select_custom_data_retrieval_screen">Individuelle Anfrage</string>
     <string name="heading_label_check_scan_qr_code">QR-Code Scannen</string>
     <string name="heading_label_show_qr_code_screen">Scan mich!</string>
     <string name="heading_label_received_data">Erhaltene Daten</string>
     <string name="heading_label_select_vda">VDA auswählen</string>
     <string name="heading_label_sign">Signieren</string>
     <string name="heading_label_tech_demo">Tech Demo</string>
+    <string name="heading_label_result">Ergebnis</string>
 
-    <string name="biometric_authentication_prompt_for_data_transmission_consent_title">Biometrische Authentifizierung</string>
-    <string name="biometric_authentication_prompt_for_data_transmission_consent_subtitle">Daten vorzeigen</string>
-    <string name="biometric_authentication_prompt_to_load_data_title">Biometrische Authentifizierung</string>
-    <string name="biometric_authentication_prompt_to_load_data_subtitle">Daten laden</string>
-    <string name="biometric_authentication_prompt_to_bind_credentials_title">Biometrische Authentifizierung</string>
-    <string name="biometric_authentication_prompt_to_bind_credentials_subtitle">Gerätbindung erzeugen</string>
+    <string name="biometric_authentication_prompt_for_data_transmission_consent_title">Daten vorzeigen</string>
+    <string name="biometric_authentication_prompt_to_load_data_title">Daten laden</string>
+    <string name="biometric_authentication_prompt_to_bind_credentials_title">Gerätbindung erzeugen</string>
 
     <string name="content_description_navigate_back">Zurück</string>
     <string name="content_description_delete_credential">Löschen</string>
@@ -284,6 +293,7 @@
     <string name="content_description_add_credential">Zusätzliche daten laden</string>
     <string name="content_description_show_attributes">Attribute anzeigen</string>
     <string name="content_description_hide_attributes">Attribute verbergen</string>
+    <string name="content_description_navigate_to_settings">Gehe zu Einstellungen</string>
 
     <string name="prompt_ask_load_missing_data">Sollen die fehlenden Daten nachgeladen werden?</string>
     <string name="prompt_send_above_data">Sollen diese Daten übermittelt werden?</string>
@@ -291,8 +301,10 @@
     <string name="prompt_select_credential">Welches Credential soll verwendet werden?</string>
     <string name="prompt_select_attribute">Welche Attribute sollen übermittelt werden?</string>
 
-    <string name="error_credential_selection_error_invalid_request_id">Keine Auswahl mit requestId</string>
     <string name="error_credential_status_invalid">UNGÜLTIG</string>
+    <string name="error_credential_timeliness_expired">ABGELAUFEN</string>
+    <string name="error_credential_timeliness_not_yet_valid">NOCH NICHT GÜLTIG</string>
+    <string name="error_credential_selection_error_invalid_request_id">Keine Auswahl mit requestId</string>
     <string name="error_credential_scheme_not_supported">Credential Schema wird nicht unterstützt</string>
     <string name="error_feature_not_yet_available">Implementation unvollständig</string>
     <string name="error_authentication_at_sp_failed">Anmeldung fehlgeschlagen</string>
@@ -321,11 +333,16 @@
     <string name="error_missing_permissions">Fehlende Erlaubnis</string>
     <string name="error_missing_value">Fehler es sind keine Daten gegeben</string>
     <string name="error_bluetooth_unavailable">Bluetooth ist nicht verfügbar</string>
+    <string name="error_bluetooth_and_nfc_unavailable">Weder Bluetooth noch NFC ist verfügbar</string>
     <string name="error_no_requests">Es sind keine Anfragen vorhanden</string>
+    <string name="error_clearing_log_failed">Log konnte nicht gelöscht werden.</string>
+    <string name="error_resetting_app_failed">App konnte nicht zurückgesetzt werden.</string>
 
     <string name="info_text_show_data_situation">In welcher Situation möchten Sie Ihre Daten vorzeigen?</string>
     <string name="info_text_error_occurred">Es ist ein Fehler aufgetreten.</string>
-    <string name="info_text_to_start_screen">Sie werden zur Startseite weitergeleitet.</string>
+    <string name="info_text_error_action_start_screen">Sie werden zur Startseite weitergeleitet.</string>
+    <string name="info_text_error_action_reset_app">Sie werden zur Erstkonfiguration weitergeleitet.</string>
+    <string name="info_text_error_cause_reset_app">Aufgrund technischer Verbesserungen muss die App zurückgesetzt werden.</string>
     <string name="info_text_data_items_missing">fehlend</string>
     <string name="info_text_authentication_success">Die Anmeldung wurde erfolgreich durchgeführt.</string>
     <string name="info_text_no_credentials_available">Es sind noch keine Daten verfügbar.</string>
@@ -349,7 +366,7 @@
     <string name="section_heading_present_data_to_executive_subtitle">Exekutive</string>
     <string name="section_heading_present_data_to_other_citizen_subtitle">dritte Bürger</string>
     <string name="section_heading_actions">Aktionen</string>
-    <string name="section_heading_transfer_options">Übertragungseinstellungen (temporär)</string>
+    <string name="section_heading_transfer_options">Übertragungseinstellungen</string>
     <string name="section_heading_information">Information</string>
     <string name="section_heading_requested_data">Angefragte Daten</string>
     <string name="section_heading_data_recipient">Empfänger</string>
@@ -380,12 +397,8 @@
     <string name="section_heading_missing_data">Neue Daten laden</string>
     <string name="section_heading_available_data">Bestehende Daten aktualisieren</string>
     <string name="section_heading_transaction_data">Transaktion</string>
-    <string name="section_heading_request_eausweise">eAusweise Anfragen</string>
-    <string name="section_heading_request_license">Andere Anfragen</string>
-    <string name="section_heading_request_custom">Individuelle Anfragen</string>
-    <string name="section_heading_select_document_type">Wähle ein Dokument Typ:</string>
-    <string name="section_heading_selected_namespace">Namespace: </string>
-    <string name="section_heading_select_requested_data_entries">Wähle anzufordernde Daten</string>
+    <string name="section_heading_technical_data">Technische Daten</string>
+    <string name="section_heading_technical_data_icon_text">T</string>
 
     <string name="onboarding_section_load_data_icon_text">2</string>
     <string name="onboarding_section_load_data_title">Daten in die App laden</string>
@@ -416,8 +429,41 @@
     <string name="presentation_permission_required">Überprüfen, ob benötigte Berechtigungen gesetzt wurden…</string>
     <string name="presentation_initialised">Initialisiere…</string>
 
+    <string name="jwt_claim_label_aud">Empfänger</string>
+    <string name="jwt_claim_label_iss">Aussteller</string>
+    <string name="jwt_claim_label_sub">Subjekt</string>
+    <string name="jwt_claim_label_exp">Gültig bis</string>
+    <string name="jwt_claim_label_nbf">Gültig ab</string>
+    <string name="jwt_claim_label_iat">Ausgestellt</string>
+
     <!-- DeviceEngagementMethods -->
     <string name="section_heading_request_engagement_method">Verbindungsaufbau via</string>
     <string name="nfc">NFC</string>
     <string name="qr">QR-Code</string>
+
+    <!-- Verify Data Route -->
+    <string name="heading_label_select_data_retrieval_screen">Prüfen</string>
+    <string name="heading_label_select_custom_data_retrieval_screen">Individuell</string>
+    <string name="heading_label_select_combined_data_retrieval_screen">Kombiniert</string>
+    <string name="section_heading_request_mdl">mDL Anfragen</string>
+    <string name="section_heading_request_pid">PID Anfragen</string>
+    <string name="section_heading_request_hid">HealthID Anfrage</string>
+    <string name="section_heading_request_combined">Kombinierte Credential-Anfrage</string>
+    <string name="section_heading_request_custom">Individuelle Anfrage</string>
+    <string name="section_heading_select_document_type">Dokument Typ</string>
+    <string name="section_heading_selected_namespace">Namespace: %1$s</string>
+    <string name="section_heading_select_requested_data_entries">Angefragte Daten</string>
+    <string name="section_heading_document_type">Dokument Typ: %1$s</string>
+    <string name="button_label_check_identity">Identität Prüfen</string>
+    <string name="button_label_check_license">Führerschein Prüfen</string>
+    <string name="button_label_check_age">Alter Prüfen</string>
+    <string name="button_label_check_combined">Kombinierte Credential-Anfrage</string>
+    <string name="button_label_check_custom">Individuelle Anfrage</string>
+    <string name="button_label_check_over_age">Über %1$s</string>
+    <string name="button_label_check_health_id">HealthID Prüfen</string>
+    <string name="button_add_request">Anfrage hinzufügen</string>
+    <string name="text_label_all_attributes">Alle Attribute</string>
+    <string name="text_label_mandatory_attributes">Notwendige Attribute</string>
+    <string name="text_label_requests">Anfragen</string>
+    <string name="info_text_no_requests">Keine Anfragen</string>
 </resources>

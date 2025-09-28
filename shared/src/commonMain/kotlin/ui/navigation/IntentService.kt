@@ -16,11 +16,11 @@ import ui.navigation.routes.SigningServiceIntentRoute
 const val PRESENTATION_REQUESTED_INTENT = "PRESENTATION_REQUESTED"
 const val SIGNING_REQUEST_INTENT = "createSignRequest"
 const val GET_CREDENTIALS_INTENT = "androidx.identitycredentials.action.GET_CREDENTIALS"
+const val GET_CREDENTIAL_INTENT = "androidx.credentials.registry.provider.action.GET_CREDENTIAL"
 
 class IntentService(
     val platformAdapter: PlatformAdapter
 ) {
-    val readyForIntents = MutableStateFlow<Boolean?>(null)
     var redirectUri: String? = null
     var intentType: IntentType? = null
 
@@ -41,8 +41,9 @@ class IntentService(
         when {
             contains("error") -> IntentType.ErrorIntent
             contains(SIGNING_REQUEST_INTENT) -> IntentType.SigningIntent
-            equals(GET_CREDENTIALS_INTENT) -> IntentType.DCAPIAuthorizationIntent
+            equals(GET_CREDENTIALS_INTENT) || equals(GET_CREDENTIAL_INTENT) -> IntentType.DCAPIAuthorizationIntent
             equals(PRESENTATION_REQUESTED_INTENT) -> IntentType.PresentationIntent
+            contains("request_uri") && contains("client_id") -> IntentType.AuthorizationIntent
             (redirectUri != null && contains(redirectUri!!) && intentType != null) -> intentType!!
             else -> IntentType.AuthorizationIntent
         }

@@ -28,7 +28,7 @@ struct ComposeView: UIViewControllerRepresentable {
 struct ContentView: View {
     var body: some View {
         ComposeView()
-                .ignoresSafeArea(.keyboard) // Compose has own keyboard handler
+                .ignoresSafeArea(.all)
                 .onOpenURL { url in
                     Globals.shared.appLink.setValue(url.absoluteString)
                 }
@@ -119,16 +119,30 @@ class SwiftPlatformAdapter: PlatformAdapter {
             }
         }
     }
-
-    //TODO: implement
-    func registerWithDigitalCredentialsAPI(entries: CredentialsContainer) {
+    
+    func registerWithDigitalCredentialsAPI(entries: CredentialList, scope: any Kotlinx_coroutines_coreCoroutineScope) {
+        // TODO: Implement
     }
-
-    func getCurrentDCAPIData() -> DCAPIRequest? {
-        return nil
+    
+    func getCurrentDCAPIData() -> KmmResult<Openid_data_classesDCAPIRequest> {
+        return KmmResult(failure: KotlinThrowable(message: "Using Swift platform adapter"))
     }
-
-    func prepareDCAPICredentialResponse(responseJson: KotlinByteArray, dcApiRequest: DCAPIRequest) {
+    
+    func prepareDCAPIIsoMdocCredentialResponse(
+        responseJson: KotlinByteArray,
+        sessionTranscript: KotlinByteArray,
+        encryptionParameters: Openid_data_classesEncryptionParameters
+    ) {
+        // TODO: Implement
     }
+    
+    func prepareDCAPIOid4vpCredentialResponse(responseJson: String, success: Bool) {
+        // TODO: Implement
+    }
+    
+    func prepareDCAPIPreviewCredentialResponse(responseJson: KotlinByteArray, dcApiRequestPreview: Openid_data_classesPreviewDCAPIRequest) {
+        // TODO: Implement
+    }
+    
 }
 

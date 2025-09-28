@@ -13,16 +13,20 @@ import data.credentials.MobileDrivingLicenceCredentialAdapter
 @Composable
 fun MobileDrivingLicenceCredentialView(
     credential: SubjectCredentialStore.StoreEntry,
-    decodeImage: (ByteArray) -> ImageBitmap,
+    decodeImage: (ByteArray) -> Result<ImageBitmap>,
     modifier: Modifier = Modifier,
 ) {
     val credentialAdapter = remember {
-        MobileDrivingLicenceCredentialAdapter.createFromStoreEntry(
-            credential,
-            decodePortrait = decodeImage,
-        )
+        MobileDrivingLicenceCredentialAdapter.createFromStoreEntry(credential, decodeImage)
     }
+    MobileDrivingLicenceCredentialViewFromAdapter(credentialAdapter, modifier)
+}
 
+@Composable
+fun MobileDrivingLicenceCredentialViewFromAdapter(
+    credentialAdapter: MobileDrivingLicenceCredentialAdapter,
+    modifier: Modifier = Modifier
+) {
     Column(modifier = modifier) {
         val spacingModifier = Modifier.padding(bottom = 16.dp)
         MobileDrivingLicenceCredentialIdentityDataCard(

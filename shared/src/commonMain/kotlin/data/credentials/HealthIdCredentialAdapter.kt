@@ -8,7 +8,7 @@ import at.asitplus.wallet.lib.agent.SubjectCredentialStore
 import at.asitplus.wallet.lib.data.ConstantIndex
 import at.asitplus.wallet.lib.data.ConstantIndex.CredentialRepresentation
 import data.Attribute
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -166,7 +166,7 @@ private class HealthIdComplexCredentialSdJwtAdapter(
         get() = (attributes[Attributes.ISSUING_JURISDICTION] as? JsonPrimitive?)?.contentOrNull
 }
 
-private class HealthIdCredentialIsoMdocAdapter(
+class HealthIdCredentialIsoMdocAdapter(
     namespaces: Map<String, Map<String, Any>>?,
 ) : HealthIdCredentialAdapter() {
     override val scheme: ConstantIndex.CredentialScheme

@@ -19,6 +19,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -93,7 +94,7 @@ fun SigningQtspSelectionView(
                             content = {
                                 Text(stringResource(Res.string.button_label_continue))
                             },
-                            onClick = { vm.onContinue(vm.url) },
+                            onClick = { vm.onContinue(vm.signatureRequestParameters) },
                             modifier = Modifier,
                         )
                     }
@@ -119,7 +120,7 @@ fun SigningQtspSelectionView(
                     )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
-                if(vm.allowPreload()) {
+                if (vm.allowPreload()) {
                     DataDisplaySection(title = stringResource(Res.string.text_label_selected_certificate)) {
                         CertificateInfoField(
                             vm.credentialInfo.value,
@@ -156,7 +157,7 @@ fun QtspSelectionField(
             onValueChange = {},
             enabled = enabled,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -185,7 +186,7 @@ fun CertificateInfoField(
             var isExpanded by rememberSaveable {
                 mutableStateOf(false)
             }
-            CertificateCard(credentialInfo, isExpanded, { isExpanded = it}, onClickDelete)
+            CertificateCard(credentialInfo, isExpanded, { isExpanded = it }, onClickDelete)
         } else {
             Text(stringResource(Res.string.text_label_no_certificate))
             OutlinedButton(onClick = onClickPreload) {

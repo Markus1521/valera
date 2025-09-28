@@ -1,6 +1,5 @@
 package at.asitplus.wallet.app.common
 
-import CscAuthorizationDetails
 import at.asitplus.catchingUnwrapped
 import at.asitplus.openid.AuthenticationRequestParameters
 import at.asitplus.openid.AuthorizationDetails
@@ -9,9 +8,11 @@ import at.asitplus.rqes.CredentialInfo
 import at.asitplus.rqes.CredentialInfoRequest
 import at.asitplus.rqes.CredentialListRequest
 import at.asitplus.rqes.CredentialListResponse
+import at.asitplus.rqes.CscAuthorizationDetails
 import at.asitplus.rqes.QtspSignatureResponse
 import at.asitplus.rqes.SignatureRequestParameters
 import at.asitplus.rqes.enums.CertificateOptions
+import at.asitplus.signum.indispensable.Digest
 import at.asitplus.signum.indispensable.X509SignatureAlgorithm
 import at.asitplus.signum.indispensable.io.ByteArrayBase64Serializer
 import at.asitplus.signum.indispensable.josef.JwsSigned
@@ -41,7 +42,6 @@ import io.ktor.http.URLBuilder
 import io.ktor.http.contentType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format.char
@@ -55,6 +55,7 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import org.jetbrains.compose.resources.getString
 import ui.navigation.IntentService
+import kotlin.time.Clock
 
 class SigningService(
     val intentService: IntentService,
@@ -73,11 +74,10 @@ class SigningService(
     lateinit var rqesWalletService: RqesOpenId4VpHolder
 
     private lateinit var signatureRequestParameter: SignatureRequestParameters
-    private lateinit var document: ByteArray
-    private lateinit var documentWithLabel: DocumentWithLabel
+    private lateinit var documentWithLabel: MutableMap<Int, DocumentWithLabel>
     private lateinit var dtbsrAuthenticationDetails: AuthorizationDetails
     private lateinit var transactionTokens: List<String>
-    private lateinit var serviceToken: TokenResponseParameters
+    private var serviceToken: TokenResponseParameters? = null
 
     private val pdfSigningAlgorithms = listOf(
         "1.2.840.113549.1.1.11", //RSA_SHA256
@@ -94,7 +94,7 @@ class SigningService(
         "2.16.840.1.101.3.4.3.12", //ECDSA_SHA3_512
     )
 
-    suspend fun reset(){
+    suspend fun reset() {
         dataStoreService.deletePreference(DATASTORE_SIGNING_CONFIG)
     }
 
@@ -140,10 +140,11 @@ class SigningService(
         exportToDataStore()
     }
 
-    suspend fun start(url: String) {
+    suspend fun start(signatureRequestParameters: SignatureRequestParameters) {
         rqesWalletService =
             RqesOpenId4VpHolder(redirectUrl = redirectUrl, clientId = config.getCurrent().oauth2ClientId)
-        extractSignatureRequestParameter(url)
+        this.signatureRequestParameter = signatureRequestParameters
+        prepareDocuments()
 
         if (config.hasValidCertificate()) {
             val credentialInfo = config.getCurrent().credentialInfo ?: throw Throwable("Missing credentialInfo")
@@ -167,23 +168,24 @@ class SigningService(
     }
 
     suspend fun resumeWithServiceAuthCode(url: String) {
-        serviceToken = getTokenFromAuthCode(url)
-        val credentialInfo = getCredentialInfo(serviceToken)
-        if (config.getCurrent().allowPreload) {
-            config.getCurrent().credentialInfo = credentialInfo
-            exportToDataStore()
+        getTokenFromAuthCode(url).let { serviceToken ->
+            this.serviceToken = serviceToken
+            val credentialInfo = getCredentialInfo(serviceToken)
+            if (config.getCurrent().allowPreload) {
+                config.getCurrent().credentialInfo = credentialInfo
+                exportToDataStore()
+            }
+            rqesWalletService.setSigningCredential(credentialInfo)
+
+            val targetUrl = createCredentialAuthRequest()
+
+            intentService.openIntent(
+                url = targetUrl,
+                redirectUri = this.redirectUrl,
+                intentType = IntentService.IntentType.SigningCredentialIntent
+            )
         }
-        rqesWalletService.setSigningCredential(credentialInfo)
-
-        val targetUrl = createCredentialAuthRequest()
-
-        intentService.openIntent(
-            url = targetUrl,
-            redirectUri = this.redirectUrl,
-            intentType = IntentService.IntentType.SigningCredentialIntent
-        )
     }
-
 
     suspend fun resumeWithCredentialAuthCode(url: String) {
         val credentialToken = getTokenFromAuthCode(url)
@@ -196,7 +198,8 @@ class SigningService(
             sad = credentialToken.accessToken,
             signatureAlgorithm = signAlgorithm
         )
-        val token = catchingUnwrapped { serviceToken }.getOrNull() ?: credentialToken
+        val token = serviceToken ?: credentialToken
+        serviceToken = null
 
         val signatures = client.post("${config.getCurrent().qtspBaseUrl}/signatures/signHash") {
             contentType(Json)
@@ -209,8 +212,13 @@ class SigningService(
         }.body<QtspSignatureResponse>()
 
         val transactionTokens = this.transactionTokens
-        val signedDocuments = getFinishedDocuments(client, pdfSigningService, signatures, transactionTokens, config.getCurrent().identifier)
-
+        val signedDocuments = getFinishedDocuments(
+            client,
+            pdfSigningService,
+            signatures,
+            transactionTokens,
+            config.getCurrent().identifier
+        )
 
 
         val signedDocList = vckJsonSerializer.encodeToJsonElement(
@@ -251,19 +259,30 @@ class SigningService(
         }.buildString()
     }
 
-    suspend fun extractSignatureRequestParameter(url: String) {
+    suspend fun prepareDocuments() {
+        this.documentWithLabel = mutableMapOf()
+        this.signatureRequestParameter.documentLocations.forEachIndexed { index, documentLocation ->
+            client.get(documentLocation.uri).bodyAsBytes().let {
+                this.documentWithLabel[index] = DocumentWithLabel(
+                    document = it,
+                    label = this.signatureRequestParameter.documentDigests[index].label
+                )
+            }
+        }
+    }
+
+    suspend fun parseSignatureRequestParameter(url: String): SignatureRequestParameters {
         val requestUri = URLBuilder(url).parameters["request_uri"] ?: throw Throwable("Missing request_uri")
         val resp = client.get(requestUri)
         val jwt = resp.bodyAsText()
 
-        this.signatureRequestParameter =
-            JwsSigned.deserialize(SignatureRequestParameters.serializer(), jwt, vckJsonSerializer).getOrThrow().payload
-
-        this.document = client.get(this.signatureRequestParameter.documentLocations.first().uri).bodyAsBytes()
-        this.documentWithLabel = DocumentWithLabel(
-            document = this.document,
-            label = this.signatureRequestParameter.documentDigests.first().label
-        )
+        return JwsSigned.deserialize(
+            SignatureRequestParameters.serializer(),
+            jwt,
+            vckJsonSerializer
+        ).getOrElse {
+            throw Throwable("SigningService: Unable to parse SignatureRequestParameters", it)
+        }.payload
     }
 
     suspend fun getTokenFromAuthCode(url: String): TokenResponseParameters {
@@ -354,8 +373,10 @@ class SigningService(
             setBody(vckJsonSerializer.encodeToString(credentialInfoRequest))
         }
         val credInfo = credentialResponse.body<CredentialInfo>()
-        return CredentialInfo(credentialId, credInfo.description, credInfo.signatureQualifier, credInfo.keyParameters,
-            credInfo.certParameters, credInfo.authParameters, credInfo.scal, credInfo.multisign)
+        return CredentialInfo(
+            credentialId, credInfo.description, credInfo.signatureQualifier, credInfo.keyParameters,
+            credInfo.certParameters, credInfo.authParameters, credInfo.scal, credInfo.multisign
+        )
 
     }
 
@@ -368,15 +389,15 @@ class SigningService(
         val signatureAlgorithm = catchingUnwrapped { commonSigningAlgorithm.first() }.getOrNull()
             ?: throw Throwable("Unsupported pdf signing algorithm")
 
-        val dtbsr = listOf(
+        val dtbsr = this.documentWithLabel.map {
             getDTBSR(
                 client = client,
                 qtspHost = pdfSigningService,
                 signatureAlgorithm = signatureAlgorithm,
                 signingCredential = signingCredential,
-                document = this.documentWithLabel
+                document = it.value
             )
-        )
+        }
         this.transactionTokens = dtbsr.map { it.first }
 
         this.dtbsrAuthenticationDetails =
@@ -471,7 +492,7 @@ data class QtspConfig(
 val qesDateTime = LocalDateTime.Format {
     year()
     monthNumber()
-    dayOfMonth()
+    day()
     hour()
     minute()
     second()
@@ -483,3 +504,10 @@ data class QtspFinalRedirect(
     val redirect_uri: String
 )
 
+
+val X509SignatureAlgorithm.digest: Digest
+    get() = when (this) {
+        is X509SignatureAlgorithm.ECDSA -> digest
+        is X509SignatureAlgorithm.RSAPSS -> digest
+        is X509SignatureAlgorithm.RSAPKCS1 -> digest
+    }

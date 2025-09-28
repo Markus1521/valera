@@ -13,13 +13,15 @@ import at.asitplus.wallet.companyregistration.Address
 import at.asitplus.wallet.companyregistration.Branch
 import at.asitplus.wallet.companyregistration.CompanyActivity
 import at.asitplus.wallet.companyregistration.ContactData
+import at.asitplus.wallet.lib.data.LocalDateOrInstant
 import at.asitplus.wallet.mdl.DrivingPrivilege
 import at.asitplus.wallet.mdl.IsoSexEnum
 import data.Attribute
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 
@@ -39,6 +41,7 @@ fun AttributeRepresentation(attribute: Attribute) {
         is Attribute.IntegerAttribute -> AttributeRepresentation(attribute.value.toString())
         is Attribute.LongAttribute -> AttributeRepresentation(attribute.value.toString())
         is Attribute.UnsignedIntegerAttribute -> AttributeRepresentation(attribute.value.toString())
+        is Attribute.IssuingAuthorityAttribute -> AttributeRepresentation(attribute.value.toString())
         // TODO Nice representation for driving privileges
         is Attribute.DrivingPrivilegeAttribute -> AttributeRepresentation(attribute.value)
         is Attribute.AddressAttribute -> AttributeRepresentation(attribute.value)
@@ -184,7 +187,7 @@ fun AttributeRepresentation(
     modifier: Modifier = Modifier,
 ) {
     Text(
-        value.run { "$dayOfMonth.$monthNumber.$year" },
+        value.run { "$day.${month.number}.$year" },
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier,
@@ -197,7 +200,7 @@ fun AttributeRepresentation(
     modifier: Modifier = Modifier,
 ) {
     Text(
-        value.run { "$dayOfMonth.$monthNumber.$year" },
+        value.run { "$day.${month.number}.$year" },
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier,
@@ -211,6 +214,20 @@ fun AttributeRepresentation(
 ) {
     AttributeRepresentation(
         value.toLocalDateTime(TimeZone.currentSystemDefault()),
+        modifier = modifier
+    )
+}
+
+@Composable
+fun AttributeRepresentation(
+    value: LocalDateOrInstant,
+    modifier: Modifier = Modifier,
+) {
+    AttributeRepresentation(
+        when (value) {
+            is LocalDateOrInstant.LocalDate -> value.value
+            is LocalDateOrInstant.Instant -> value.value.toLocalDateTime(TimeZone.currentSystemDefault()).date
+        },
         modifier = modifier
     )
 }

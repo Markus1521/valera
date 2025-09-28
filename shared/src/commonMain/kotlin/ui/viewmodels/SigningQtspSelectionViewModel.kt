@@ -1,6 +1,7 @@
 package ui.viewmodels
 
 import androidx.compose.runtime.mutableStateOf
+import at.asitplus.rqes.SignatureRequestParameters
 import at.asitplus.wallet.app.common.WalletMain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -10,14 +11,15 @@ import kotlinx.coroutines.runBlocking
 
 class SigningQtspSelectionViewModel(
     val navigateUp: () -> Unit,
-    val onContinue: (String) -> Unit,
+    val onContinue: (SignatureRequestParameters) -> Unit,
     val walletMain: WalletMain,
     val onClickLogo: () -> Unit,
     val onClickSettings: () -> Unit,
-    val url: String
+    val signatureRequestParameters: SignatureRequestParameters
 ) {
     val selection = mutableStateOf(walletMain.signingService.config.current)
-    val credentialInfo = mutableStateOf(walletMain.signingService.config.getQtspByIdentifier(selection.value).credentialInfo)
+    val credentialInfo =
+        mutableStateOf(walletMain.signingService.config.getQtspByIdentifier(selection.value).credentialInfo)
     val qtspList = walletMain.signingService.config.qtsps
 
     val onClickPreload: () -> Unit = {

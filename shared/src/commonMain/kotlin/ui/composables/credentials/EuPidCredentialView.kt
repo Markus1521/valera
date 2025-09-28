@@ -13,13 +13,20 @@ import data.credentials.EuPidCredentialAdapter
 @Composable
 fun EuPidCredentialView(
     credential: SubjectCredentialStore.StoreEntry,
-    decodeImage: (ByteArray) -> ImageBitmap,
+    decodeImage: (ByteArray) -> Result<ImageBitmap>,
     modifier: Modifier = Modifier,
 ) {
     val credentialAdapter = remember {
         EuPidCredentialAdapter.createFromStoreEntry(credential, decodeImage)
     }
+    EuPidCredentialViewFromAdapter(credentialAdapter, modifier)
+}
 
+@Composable
+fun EuPidCredentialViewFromAdapter(
+    credentialAdapter: EuPidCredentialAdapter,
+    modifier: Modifier = Modifier
+) {
     Column(modifier = modifier) {
         val spacingModifier = Modifier.padding(bottom = 16.dp)
         EuPidCredentialIdentityDataCard(credentialAdapter, spacingModifier)

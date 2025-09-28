@@ -7,13 +7,13 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 
 class ErrorService() {
-    val error = MutableSharedFlow<ErrorFlowData>()
+    val error = MutableSharedFlow<ErrorFlowData>(replay = 1)
     private val scope = CoroutineScope(Dispatchers.Default)
 
     fun emit(e: Throwable) = scope.launch {
-        error.emit(ErrorFlowData(e.message, e.cause?.message))
+        error.emit(ErrorFlowData(e))
         Napier.e("Error", e)
     }
 }
 
-data class ErrorFlowData(val message: String?, val cause: String?)
+data class ErrorFlowData(val throwable: Throwable)

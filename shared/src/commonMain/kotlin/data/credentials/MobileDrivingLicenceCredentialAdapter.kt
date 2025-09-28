@@ -3,7 +3,6 @@ package data.credentials
 import androidx.compose.ui.graphics.ImageBitmap
 import at.asitplus.jsonpath.core.NormalizedJsonPath
 import at.asitplus.jsonpath.core.NormalizedJsonPathSegment
-import at.asitplus.signum.indispensable.io.Base64UrlStrict
 import at.asitplus.wallet.lib.agent.SubjectCredentialStore
 import at.asitplus.wallet.lib.data.ConstantIndex
 import at.asitplus.wallet.lib.data.ConstantIndex.CredentialRepresentation
@@ -13,14 +12,13 @@ import at.asitplus.wallet.mdl.MobileDrivingLicenceDataElements
 import at.asitplus.wallet.mdl.MobileDrivingLicenceScheme
 import data.Attribute
 import io.ktor.util.decodeBase64Bytes
-import io.matthewnelson.encoding.core.Decoder.Companion.decodeToByteArray
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 
 sealed class MobileDrivingLicenceCredentialAdapter(
-    private val decodePortrait: (ByteArray) -> ImageBitmap?,
+    private val decodePortrait: (ByteArray) -> Result<ImageBitmap>,
 ) : CredentialAdapter() {
     override fun getAttribute(path: NormalizedJsonPath) =
         when (val first = path.segments.firstOrNull()) {
@@ -119,17 +117,17 @@ sealed class MobileDrivingLicenceCredentialAdapter(
     abstract val ageBirthYear: UInt?
     abstract val birthPlace: String?
     abstract val portraitRaw: ByteArray?
-    val portraitBitmap: ImageBitmap? by lazy { portraitRaw?.let(decodePortrait) }
+    val portraitBitmap: ImageBitmap? by lazy { portraitRaw?.let(decodePortrait)?.getOrNull() }
     abstract val signatureRaw: ByteArray?
-    val signatureBitmap: ImageBitmap? by lazy { signatureRaw?.let(decodePortrait) }
+    val signatureBitmap: ImageBitmap? by lazy { signatureRaw?.let(decodePortrait)?.getOrNull() }
     abstract val biometricTemplateFaceRaw: ByteArray?
-    val biometricTemplateFace: ImageBitmap? by lazy { biometricTemplateFaceRaw?.let(decodePortrait) }
+    val biometricTemplateFace: ImageBitmap? by lazy { biometricTemplateFaceRaw?.let(decodePortrait)?.getOrNull() }
     abstract val biometricTemplateFingerRaw: ByteArray?
-    val biometricTemplateFinger: ImageBitmap? by lazy { biometricTemplateFingerRaw?.let(decodePortrait) }
+    val biometricTemplateFinger: ImageBitmap? by lazy { biometricTemplateFingerRaw?.let(decodePortrait)?.getOrNull() }
     abstract val biometricTemplateIrisRaw: ByteArray?
-    val biometricTemplateIris: ImageBitmap? by lazy { biometricTemplateIrisRaw?.let(decodePortrait) }
+    val biometricTemplateIris: ImageBitmap? by lazy { biometricTemplateIrisRaw?.let(decodePortrait)?.getOrNull() }
     abstract val biometricTemplateSignatureSignRaw: ByteArray?
-    val biometricTemplateSignatureSign: ImageBitmap? by lazy { biometricTemplateSignatureSignRaw?.let(decodePortrait) }
+    val biometricTemplateSignatureSign: ImageBitmap? by lazy { biometricTemplateSignatureSignRaw?.let(decodePortrait)?.getOrNull() }
     abstract val documentNumber: String?
     abstract val administrativeNumber: String?
     abstract val sex: IsoSexEnum?
@@ -149,7 +147,7 @@ sealed class MobileDrivingLicenceCredentialAdapter(
     companion object {
         fun createFromStoreEntry(
             storeEntry: SubjectCredentialStore.StoreEntry,
-            decodePortrait: (ByteArray) -> ImageBitmap?,
+            decodePortrait: (ByteArray) -> Result<ImageBitmap>,
         ): MobileDrivingLicenceCredentialAdapter {
             if (storeEntry.scheme !is MobileDrivingLicenceScheme) {
                 throw IllegalArgumentException("credential")
@@ -169,7 +167,7 @@ sealed class MobileDrivingLicenceCredentialAdapter(
 
 private class MobileDrivingLicenceCredentialSdJwtAdapter(
     private val attributes: Map<String, JsonPrimitive>,
-    decodePortrait: (ByteArray) -> ImageBitmap?,
+    decodePortrait: (ByteArray) -> Result<ImageBitmap>,
 ) : MobileDrivingLicenceCredentialAdapter(decodePortrait) {
     override val scheme: ConstantIndex.CredentialScheme
         get() = MobileDrivingLicenceScheme
@@ -254,27 +252,27 @@ private class MobileDrivingLicenceCredentialSdJwtAdapter(
 
     override val portraitRaw: ByteArray?
         get() = attributes[MobileDrivingLicenceDataElements.PORTRAIT]?.contentOrNull
-            ?.decodeToByteArray(Base64UrlStrict)
+            ?.decodeFromPortraitString()
 
     override val signatureRaw: ByteArray?
         get() = attributes[MobileDrivingLicenceDataElements.SIGNATURE_USUAL_MARK]?.contentOrNull
-            ?.decodeToByteArray(Base64UrlStrict)
+            ?.decodeFromPortraitString()
 
     override val biometricTemplateFaceRaw: ByteArray?
         get() = attributes[MobileDrivingLicenceDataElements.BIOMETRIC_TEMPLATE_FACE]?.contentOrNull
-            ?.decodeToByteArray(Base64UrlStrict)
+            ?.decodeFromPortraitString()
 
     override val biometricTemplateFingerRaw: ByteArray?
         get() = attributes[MobileDrivingLicenceDataElements.BIOMETRIC_TEMPLATE_FINGER]?.contentOrNull
-            ?.decodeToByteArray(Base64UrlStrict)
+            ?.decodeFromPortraitString()
 
     override val biometricTemplateIrisRaw: ByteArray?
         get() = attributes[MobileDrivingLicenceDataElements.BIOMETRIC_TEMPLATE_IRIS]?.contentOrNull
-            ?.decodeToByteArray(Base64UrlStrict)
+            ?.decodeFromPortraitString()
 
     override val biometricTemplateSignatureSignRaw: ByteArray?
         get() = attributes[MobileDrivingLicenceDataElements.BIOMETRIC_TEMPLATE_SIGNATURE_SIGN]?.contentOrNull
-            ?.decodeToByteArray(Base64UrlStrict)
+            ?.decodeFromPortraitString()
 
     override val documentNumber: String?
         get() = attributes[MobileDrivingLicenceDataElements.DOCUMENT_NUMBER]?.contentOrNull
@@ -324,9 +322,9 @@ private class MobileDrivingLicenceCredentialSdJwtAdapter(
         get() = attributes[MobileDrivingLicenceDataElements.UN_DISTINGUISHING_SIGN]?.contentOrNull
 }
 
-private class MobileDrivingLicenceCredentialIsoMdocAdapter(
+class MobileDrivingLicenceCredentialIsoMdocAdapter(
     namespaces: Map<String, Map<String, Any>>?,
-    decodePortrait: (ByteArray) -> ImageBitmap?,
+    decodePortrait: (ByteArray) -> Result<ImageBitmap>,
 ) : MobileDrivingLicenceCredentialAdapter(decodePortrait) {
     override val scheme: ConstantIndex.CredentialScheme
         get() = MobileDrivingLicenceScheme
@@ -480,7 +478,7 @@ private class MobileDrivingLicenceCredentialIsoMdocAdapter(
     @Suppress("UNCHECKED_CAST")
     override val drivingPrivileges: Array<DrivingPrivilege>?
         get() = namespace?.get(MobileDrivingLicenceDataElements.DRIVING_PRIVILEGES)
-            ?.let { it as Array<DrivingPrivilege> }
+            ?.let { it as? Array<DrivingPrivilege>? }
 
     override val undistinguishingSign: String?
         get() = namespace?.get(MobileDrivingLicenceDataElements.UN_DISTINGUISHING_SIGN) as String?

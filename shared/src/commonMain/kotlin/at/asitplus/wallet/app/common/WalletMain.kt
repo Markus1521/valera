@@ -1,169 +1,75 @@
 package at.asitplus.wallet.app.common
 
-import androidx.compose.ui.graphics.ImageBitmap
+import at.asitplus.KmmResult
 import at.asitplus.catchingUnwrapped
-import at.asitplus.signum.indispensable.josef.JsonWebKey
-import at.asitplus.signum.indispensable.josef.JsonWebKeySet
-import at.asitplus.signum.indispensable.josef.JwsSigned
+import at.asitplus.dcapi.request.DCAPIRequest
+import at.asitplus.dcapi.request.PreviewDCAPIRequest
+import at.asitplus.iso.EncryptionParameters
 import at.asitplus.valera.resources.Res
 import at.asitplus.valera.resources.snackbar_update_action
 import at.asitplus.valera.resources.snackbar_update_hint
-import at.asitplus.wallet.app.common.dcapi.CredentialsContainer
-import at.asitplus.wallet.app.common.dcapi.DCAPIRequest
+import at.asitplus.wallet.app.common.data.SettingsRepository
+import at.asitplus.wallet.app.common.dcapi.DCAPIExportService
+import at.asitplus.wallet.app.common.dcapi.data.export.CredentialList
 import at.asitplus.wallet.lib.agent.HolderAgent
 import at.asitplus.wallet.lib.agent.SubjectCredentialStore
 import at.asitplus.wallet.lib.agent.Validator
-import at.asitplus.wallet.lib.data.StatusListToken
-import at.asitplus.wallet.lib.data.rfc.tokenStatusList.MediaTypes
-import at.asitplus.wallet.lib.data.rfc.tokenStatusList.StatusListTokenPayload
-import at.asitplus.wallet.lib.jws.VerifyJwsObject
 import at.asitplus.wallet.lib.ktor.openid.CredentialIdentifierInfo
-import at.asitplus.wallet.lib.rqes.Initializer.initRqesModule
-import data.storage.AntilogAdapter
 import data.storage.DataStoreService
-import data.storage.PersistentSubjectCredentialStore
+import data.storage.WalletSubjectCredentialStore
 import getImageDecoder
 import io.github.aakira.napier.Napier
-import io.ktor.client.call.body
-import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.HttpHeaders
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.Clock
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import net.swiftzer.semver.SemVer
 import org.jetbrains.compose.resources.getString
 import org.multipaz.prompt.PromptModel
-import ui.navigation.IntentService
 
 /**
  * Main class to hold all services needed in the Compose App.
  */
 class WalletMain(
     val keyMaterial: WalletKeyMaterial,
-    private val dataStoreService: DataStoreService,
+    val dataStoreService: DataStoreService,
     val platformAdapter: PlatformAdapter,
-    var subjectCredentialStore: PersistentSubjectCredentialStore =
-        PersistentSubjectCredentialStore(dataStoreService),
+    val subjectCredentialStore: WalletSubjectCredentialStore,
     val buildContext: BuildContext,
-    promptModel: PromptModel
+    promptModel: PromptModel,
+    val credentialValidator: Validator,
+    val holderAgent: HolderAgent,
+    val provisioningService: ProvisioningService,
+    val httpService: HttpService,
+    val presentationService: PresentationService,
+    val signingService: SigningService,
+    val dcApiExportService: DCAPIExportService,
+    val errorService: ErrorService,
+    val snackbarService: SnackbarService,
+    val settingsRepository: SettingsRepository,
+    val sessionService: SessionService,
 ) {
-    lateinit var walletConfig: WalletConfig
-    lateinit var credentialValidator: Validator
-    lateinit var holderAgent: HolderAgent
-    lateinit var provisioningService: ProvisioningService
-    lateinit var httpService: HttpService
-    lateinit var presentationService: PresentationService
-    lateinit var signingService: SigningService
-    lateinit var dcApiService: DCAPIService
-    lateinit var intentService: IntentService
-    val errorService = ErrorService()
-    val snackbarService = SnackbarService()
+    val appReady = MutableStateFlow<Boolean?>(null)
+
     private val regex = Regex("^(?=\\[[0-9]{2})", option = RegexOption.MULTILINE)
-    private val coroutineExceptionHandler = CoroutineExceptionHandler { _, error ->
+    val coroutineExceptionHandler = CoroutineExceptionHandler { _, error ->
         errorService.emit(error)
     }
-    val scope = CoroutineScope(Dispatchers.Default + coroutineExceptionHandler + promptModel + CoroutineName("WalletMain"))
+    val scope =
+        CoroutineScope(
+            Dispatchers.Default + coroutineExceptionHandler + promptModel + CoroutineName(
+                "WalletMain"
+            )
+        )
 
     init {
-        at.asitplus.wallet.mdl.Initializer.initWithVCK()
-        at.asitplus.wallet.idaustria.Initializer.initWithVCK()
-        at.asitplus.wallet.eupid.Initializer.initWithVCK()
-        at.asitplus.wallet.eupidsdjwt.Initializer.initWithVCK()
-        at.asitplus.wallet.cor.Initializer.initWithVCK()
-        at.asitplus.wallet.por.Initializer.initWithVCK()
-        at.asitplus.wallet.companyregistration.Initializer.initWithVCK()
-        at.asitplus.wallet.healthid.Initializer.initWithVCK()
-        at.asitplus.wallet.taxid.Initializer.initWithVCK()
-        at.asitplus.wallet.taxid.Initializer2025.initWithVCK()
-        initRqesModule()
-        Napier.takeLogarithm()
-        Napier.base(AntilogAdapter(platformAdapter, "", buildContext.buildType))
+        startListeningForNewCredentialsDCAPI()
     }
-
-    @Throws(Throwable::class)
-    fun initialize() {
-        walletConfig = WalletConfig(dataStoreService = this.dataStoreService, errorService = errorService)
-        subjectCredentialStore = PersistentSubjectCredentialStore(dataStoreService)
-
-        httpService = HttpService(buildContext)
-        credentialValidator = Validator(
-            resolveStatusListToken = {
-                val httpResponse = httpService.buildHttpClient().get(it.string) {
-                    headers.set(HttpHeaders.Accept, MediaTypes.Application.STATUSLIST_JWT)
-                }
-                StatusListToken.StatusListJwt(
-                    JwsSigned.deserialize<StatusListTokenPayload>(
-                        StatusListTokenPayload.serializer(),
-                        httpResponse.bodyAsText()
-                    ).getOrThrow(),
-                    resolvedAt = Clock.System.now(),
-                )
-            },
-            verifyJwsObject = VerifyJwsObject(publicKeyLookup = issuerKeyLookup())
-        )
-        holderAgent = HolderAgent(
-            keyMaterial = keyMaterial,
-            subjectCredentialStore = subjectCredentialStore,
-            validator = credentialValidator,
-        )
-        intentService = IntentService(
-            platformAdapter
-        )
-        httpService = HttpService(buildContext)
-        provisioningService = ProvisioningService(
-            intentService,
-            dataStoreService,
-            keyMaterial,
-            holderAgent,
-            walletConfig,
-            errorService,
-            httpService
-        )
-        presentationService = PresentationService(
-            platformAdapter,
-            keyMaterial,
-            holderAgent,
-            httpService,
-        )
-        signingService = SigningService(
-            intentService,
-            dataStoreService,
-            errorService,
-            snackbarService,
-            httpService
-        )
-
-        this.dcApiService = DCAPIService(platformAdapter)
-    }
-
-    private fun issuerKeyLookup(): (JwsSigned<*>) -> Set<JsonWebKey>? = { jws ->
-        if (jws.payloadIssuer() == "https://dss.aegean.gr/rfc-issuer" && jws.header.keyId != null) {
-            loadJsonWebKeySet("https://dss.aegean.gr/.well-known/")
-                ?.keys?.firstOrNull { it.keyId == jws.header.keyId }?.let { setOf(it) }
-        } else setOf()
-    }
-
-    private fun loadJsonWebKeySet(url: String) = runBlocking {
-        CoroutineScope(Dispatchers.IO).async {
-            catchingUnwrapped {
-                httpService.buildHttpClient().get(url).body<JsonWebKeySet>()
-            }.getOrNull()
-        }.await()
-    }
-
-    private fun JwsSigned<*>.payloadIssuer() =
-        ((payload as? JsonObject?)?.get("iss") as? JsonPrimitive?)?.content
 
     suspend fun resetApp() {
         dataStoreService.clearLog()
@@ -173,7 +79,10 @@ class WalletMain(
         dataStoreService.deletePreference(Configuration.DATASTORE_KEY_VCS)
         dataStoreService.deletePreference(Configuration.DATASTORE_KEY_PROVISIONING_CONTEXT)
         dataStoreService.deletePreference(Configuration.DATASTORE_KEY_COOKIES)
-        walletConfig.reset()
+        KeystoreService.clearKeyMaterial()
+
+        settingsRepository.reset()
+        sessionService.newScope()
     }
 
     fun getLog(): List<String> {
@@ -203,16 +112,16 @@ class WalletMain(
         }
     }
 
-    fun updateDigitalCredentialsAPIIntegration() {
-        scope.launch {
-            try {
-                Napier.d("Updating digital credentials integration")
-                subjectCredentialStore.observeStoreContainer().collect { container ->
-                    dcApiService.registerCredentialWithSystem(container)
-                }
-            } catch (e: Throwable) {
-                Napier.w("Could not update credentials with system", e)
-            }
+    private fun startListeningForNewCredentialsDCAPI() {
+        try {
+            val scope =
+                CoroutineScope(Dispatchers.IO + coroutineExceptionHandler + CoroutineName("startListeningForNewCredentialsDCAPI"))
+            Napier.d("DC API: Starting to observe credentials")
+            subjectCredentialStore.observeStoreContainer().onEach { storeContainer ->
+                dcApiExportService.registerCredentialWithSystem(storeContainer, scope)
+            }.launchIn(scope)
+        } catch (e: Throwable) {
+            Napier.w("DC API: Could not update credentials with system", e)
         }
     }
 
@@ -222,7 +131,7 @@ class WalletMain(
                 val httpClient = httpService.buildHttpClient()
                 val host = "https://wallet.a-sit.at/"
                 val url = "${host}check.json"
-                Napier.d("Getting check.json from $url")
+                Napier.d("Performing update check with $url")
                 val json = httpClient.get(url).body<JsonObject>()
                 json["apps"]?.jsonObject?.get(buildContext.packageName)?.let {
                     (it as? JsonObject)?.get("latestVersion")?.jsonPrimitive?.content?.let {
@@ -231,11 +140,8 @@ class WalletMain(
                         Napier.d("Version is $currentVersion, latest is $latestVersion")
                         if (latestVersion > currentVersion) {
                             snackbarService.showSnackbar(
-                                getString(
-                                    Res.string.snackbar_update_hint,
-                                    host,
-                                    latestVersion
-                                ), getString(Res.string.snackbar_update_action)
+                                getString(Res.string.snackbar_update_hint, latestVersion),
+                                getString(Res.string.snackbar_update_action)
                             ) {
                                 platformAdapter.openUrl(host)
                             }
@@ -248,16 +154,17 @@ class WalletMain(
         }
     }
 
-    suspend fun checkRevocationStatus(storeEntry: SubjectCredentialStore.StoreEntry) = when (val it = storeEntry) {
-        is SubjectCredentialStore.StoreEntry.Iso -> credentialValidator.checkRevocationStatus(it.issuerSigned)
-        is SubjectCredentialStore.StoreEntry.SdJwt -> credentialValidator.checkRevocationStatus(it.sdJwt)
-        is SubjectCredentialStore.StoreEntry.Vc -> credentialValidator.checkRevocationStatus(it.vc)
-    }?.getOrNull()
+    suspend fun checkCredentialFreshness(storeEntry: SubjectCredentialStore.StoreEntry) = when (val it = storeEntry) {
+        is SubjectCredentialStore.StoreEntry.Iso -> credentialValidator.checkCredentialFreshness(it.issuerSigned)
+        is SubjectCredentialStore.StoreEntry.SdJwt -> credentialValidator.checkCredentialFreshness(it.sdJwt)
+        is SubjectCredentialStore.StoreEntry.Vc -> credentialValidator.checkCredentialFreshness(it.vc)
+    }
 }
 
-fun PlatformAdapter.decodeImage(image: ByteArray): ImageBitmap {
-    return getImageDecoder((image))
+fun PlatformAdapter.decodeImage(image: ByteArray) = catchingUnwrapped {
+    getImageDecoder((image))
 }
+
 
 /**
  * Adapter to call back to native code without the need for service objects
@@ -267,12 +174,6 @@ interface PlatformAdapter {
      * Opens a specified resource (Intent, Associated Domain)
      */
     fun openUrl(url: String)
-
-    /**
-     * Converts an image from ByteArray to ImageBitmap
-     * @param image the image as ByteArray
-     * @return returns the image as an ImageBitmap
-     */
 
     /**
      * Writes an user defined string to a file in a specific folder
@@ -305,18 +206,30 @@ interface PlatformAdapter {
     /**
      * Registers credentials with the digital credentials browser API
      * @param entries credentials to add
+     * @param scope CoroutineScope for registering credentials
      */
-    fun registerWithDigitalCredentialsAPI(entries: CredentialsContainer)
+    fun registerWithDigitalCredentialsAPI(entries: CredentialList, scope: CoroutineScope)
 
     /**
      * Retrieves request from the digital credentials browser API
      */
-    fun getCurrentDCAPIData(): DCAPIRequest?
+    fun getCurrentDCAPIData(): KmmResult<DCAPIRequest>
 
     /**
      * Prepares the credential response and sends it back to the invoking application
      */
-    fun prepareDCAPICredentialResponse(responseJson: ByteArray, dcApiRequest: DCAPIRequest)
+    fun prepareDCAPIPreviewCredentialResponse(
+        responseJson: ByteArray,
+        dcApiRequestPreview: PreviewDCAPIRequest
+    )
+
+    fun prepareDCAPIIsoMdocCredentialResponse(
+        responseJson: ByteArray,
+        sessionTranscript: ByteArray,
+        encryptionParameters: EncryptionParameters
+    )
+
+    fun prepareDCAPIOid4vpCredentialResponse(responseJson: String, success: Boolean)
 
 }
 
@@ -337,17 +250,27 @@ class DummyPlatformAdapter : PlatformAdapter {
     override fun shareLog() {
     }
 
-    override fun registerWithDigitalCredentialsAPI(entries: CredentialsContainer) {
+    override fun registerWithDigitalCredentialsAPI(entries: CredentialList, scope: CoroutineScope) {
     }
 
-    override fun getCurrentDCAPIData(): DCAPIRequest? {
-        return null
+    override fun getCurrentDCAPIData(): KmmResult<DCAPIRequest> {
+        return KmmResult.failure(IllegalStateException("Using dummy platform adapter"))
     }
 
-    override fun prepareDCAPICredentialResponse(
+    override fun prepareDCAPIPreviewCredentialResponse(
         responseJson: ByteArray,
-        dcApiRequest: DCAPIRequest
+        dcApiRequestPreview: PreviewDCAPIRequest
     ) {
+    }
+
+    override fun prepareDCAPIIsoMdocCredentialResponse(
+        responseJson: ByteArray,
+        sessionTranscript: ByteArray,
+        encryptionParameters: EncryptionParameters
+    ) {
+    }
+
+    override fun prepareDCAPIOid4vpCredentialResponse(responseJson: String, success: Boolean) {
     }
 
 }

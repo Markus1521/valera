@@ -1,57 +1,50 @@
 package ui.viewmodels.iso
 
+import at.asitplus.KmmResult
+import at.asitplus.iso.DeviceResponse
+import at.asitplus.signum.indispensable.cosef.io.coseCompliantSerializer
 import at.asitplus.wallet.app.common.WalletMain
+import at.asitplus.wallet.app.common.data.SettingsRepository
 import at.asitplus.wallet.app.common.iso.transfer.DeviceEngagementMethods
-import at.asitplus.wallet.app.common.iso.transfer.TransferManager
-import at.asitplus.wallet.eupid.EuPidScheme
-import at.asitplus.wallet.lib.iso.DeviceResponse
-import at.asitplus.wallet.mdl.MobileDrivingLicenceDataElements
-import at.asitplus.wallet.mdl.MobileDrivingLicenceScheme
 import at.asitplus.wallet.app.common.iso.transfer.MdocConstants.MDOC_PREFIX
-import data.document.RequestDocument
+import at.asitplus.wallet.app.common.iso.transfer.TransferManager
+import data.document.RequestDocumentBuilder
+import data.document.RequestDocumentList
+import data.document.SelectableRequest
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import ui.viewmodels.iso.SelectableAge.OVER_14
-import ui.viewmodels.iso.SelectableAge.OVER_16
-import ui.viewmodels.iso.SelectableAge.OVER_18
-import ui.viewmodels.iso.SelectableAge.OVER_21
+import kotlinx.serialization.decodeFromByteArray
 
 class VerifierViewModel(
     val navigateUp: () -> Unit,
     val onClickLogo: () -> Unit,
     val walletMain: WalletMain,
     val navigateToHomeScreen: () -> Unit,
-    val onClickSettings: () -> Unit
+    val onClickSettings: () -> Unit,
+    val settingsRepository: SettingsRepository,
 ) {
     private val transferManager: TransferManager by lazy {
-        TransferManager(walletMain.scope) { message -> } // TODO: handle update messages
+        TransferManager(settingsRepository, walletMain.scope) { message -> } // TODO: handle update messages
     }
 
     private val _verifierState = MutableStateFlow(VerifierState.INIT)
     val verifierState: StateFlow<VerifierState> = _verifierState
 
-    fun setVerifierState(newVerifierState: VerifierState) {
-        _verifierState.value = newVerifierState
-    }
-
-    private val _requestDocument = MutableStateFlow<RequestDocument?>(null)
+    private val _requestDocumentList = RequestDocumentList()
 
     private val _deviceResponse = MutableStateFlow<DeviceResponse?>(null)
     val deviceResponse: StateFlow<DeviceResponse?> = _deviceResponse
 
-    private val _errorMessage = MutableStateFlow<String>("")
+    private val _errorMessage = MutableStateFlow("")
     val errorMessage: StateFlow<String> = _errorMessage
 
     fun handleError(errorMessage: String) {
         _errorMessage.value = errorMessage
-        setVerifierState(VerifierState.ERROR)
+        _verifierState.value = VerifierState.ERROR
     }
 
-    private val _selectedEngagementMethod = MutableStateFlow<DeviceEngagementMethods>(
-        DeviceEngagementMethods.NFC
-    )
-
+    private val _selectedEngagementMethod = MutableStateFlow(DeviceEngagementMethods.QR_CODE)
     val selectedEngagementMethod: StateFlow<DeviceEngagementMethods> = _selectedEngagementMethod
 
     private fun setStateToEngagement(selectedEngagementMethod: DeviceEngagementMethods) {
@@ -62,30 +55,29 @@ class VerifierViewModel(
     }
 
     private fun doNfcEngagement() {
-        _requestDocument.value?.let { document ->
-            transferManager.startNfcEngagement(document) { deviceResponseBytes ->
+        _requestDocumentList.let { requestDocumentList ->
+            transferManager.startNfcEngagement(requestDocumentList) { deviceResponseBytes ->
                 handleResponse(deviceResponseBytes)
             }
         }
     }
 
-    private fun handleResponse(deviceResponseBytes: ByteArray) {
-        _deviceResponse.value = DeviceResponse.deserialize(deviceResponseBytes).getOrThrow()
-        _verifierState.value = VerifierState.PRESENTATION
+    private fun handleResponse(result: KmmResult<ByteArray>) {
+        result.onSuccess { deviceResponseBytes ->
+            _deviceResponse.value = coseCompliantSerializer.decodeFromByteArray<DeviceResponse>(deviceResponseBytes)
+            _verifierState.value = VerifierState.PRESENTATION
+        }.onFailure { error ->
+            handleError(error.message ?: "Unknown error")
+        }
     }
 
-    fun onClickPredefinedMdl(selectedEngagementMethod: DeviceEngagementMethods) {
-        _requestDocument.value = getMdlRequestDocument()
-        setStateToEngagement(selectedEngagementMethod)
-    }
-
-    fun onClickPredefinedPid(selectedEngagementMethod: DeviceEngagementMethods) {
-        _requestDocument.value = getPidRequestDocument()
-        setStateToEngagement(selectedEngagementMethod)
-    }
-
-    fun onClickPredefinedAge(age: Int, selectedEngagementMethod: DeviceEngagementMethods) {
-        _requestDocument.value = getAgeVerificationRequestDocument(age)
+    fun onRequestSelected(
+        selectedEngagementMethod: DeviceEngagementMethods,
+        request: SelectableRequest
+    ) {
+        _requestDocumentList.addRequestDocument(
+            RequestDocumentBuilder.buildRequestDocument(request)
+        )
         setStateToEngagement(selectedEngagementMethod)
     }
 
@@ -94,26 +86,46 @@ class VerifierViewModel(
         _verifierState.value = VerifierState.SELECT_CUSTOM_REQUEST
     }
 
+    fun navigateToCombinedSelectionView(selectedEngagementMethod: DeviceEngagementMethods) {
+        _selectedEngagementMethod.value = selectedEngagementMethod
+        _verifierState.value = VerifierState.SELECT_COMBINED_REQUEST
+    }
+
     fun navigateToVerifyDataView() {
         _verifierState.value = VerifierState.INIT
     }
 
+    fun onReceiveCombinedSelection(requestSelectionList:  List<SelectableRequest>) {
+        requestSelectionList.forEach { request ->
+            _requestDocumentList.addRequestDocument(
+                RequestDocumentBuilder.buildRequestDocument(request)
+            )
+        }
+        setStateToEngagement(selectedEngagementMethod.value)
+    }
+
     fun onReceiveCustomSelection(
-        customSelectionDocument: RequestDocument,
-        selectedEngagementMethod: DeviceEngagementMethods
+        selectedDocumentType: String,
+        selectedEntries: Collection<String>
     ) {
-        _requestDocument.value = customSelectionDocument
-        setStateToEngagement(selectedEngagementMethod)
+        val config = RequestDocumentBuilder.getDocTypeConfig(selectedDocumentType) ?: return
+        _requestDocumentList.addRequestDocument(
+            RequestDocumentBuilder.buildRequestDocument(
+                scheme = config.scheme,
+                subSet = selectedEntries
+            )
+        )
+        setStateToEngagement(selectedEngagementMethod.value)
     }
 
     val onFoundPayload: (String) -> Unit = { payload ->
         if (payload.startsWith(MDOC_PREFIX)) {
             _verifierState.value = VerifierState.WAITING_FOR_RESPONSE
-            _requestDocument.value?.let { document ->
+            _requestDocumentList.let { requestDocumentList ->
                 transferManager.doQrFlow(
                     payload.removePrefix(MDOC_PREFIX),
-                    document,
-                    { message -> } // TODO: handle update messages
+                    requestDocumentList,
+                    { message -> Napier.d("Transfer message: $message") } // TODO: handle update messages
                 ) { deviceResponseBytes ->
                     handleResponse(deviceResponseBytes)
                 }
@@ -126,75 +138,10 @@ class VerifierViewModel(
     }
 }
 
-fun getMdlRequestDocument(): RequestDocument {
-    return RequestDocument(
-        docType = MobileDrivingLicenceScheme.isoDocType,
-        itemsToRequest = mapOf(
-            MobileDrivingLicenceScheme.isoNamespace to MobileDrivingLicenceDataElements.MANDATORY_ELEMENTS
-                .associateWith { false }
-        )
-    )
-}
-
-fun getMdlPreselection(): Set<String> {
-    return MobileDrivingLicenceDataElements.MANDATORY_ELEMENTS.toSet()
-}
-
-fun getPidRequestDocument(): RequestDocument {
-    return RequestDocument(
-        docType = EuPidScheme.isoDocType,
-        itemsToRequest = mapOf(
-            EuPidScheme.isoNamespace to EuPidScheme.requiredClaimNames
-                .associateWith { false }
-        )
-    )
-}
-
-fun getPidPreselection(): Set<String> {
-    return EuPidScheme.requiredClaimNames.toSet()
-}
-
-fun getAgeVerificationRequestDocument(age: Int): RequestDocument {
-    val elementName = when(age) {
-        OVER_14 -> MobileDrivingLicenceDataElements.AGE_OVER_14
-        OVER_16 -> MobileDrivingLicenceDataElements.AGE_OVER_16
-        OVER_18 -> MobileDrivingLicenceDataElements.AGE_OVER_18
-        OVER_21 -> MobileDrivingLicenceDataElements.AGE_OVER_21
-        else -> MobileDrivingLicenceDataElements.AGE_OVER_18
-    }
-    return RequestDocument(
-        docType = MobileDrivingLicenceScheme.isoDocType,
-        itemsToRequest = mapOf(
-            MobileDrivingLicenceScheme.isoNamespace to mapOf(elementName to false)
-        )
-    )
-}
-
-fun itemsToRequestDocument(
-    docType: String,
-    namespace: String,
-    entries: Set<String>
-): RequestDocument {
-    return RequestDocument(
-        docType = docType,
-        itemsToRequest = mapOf(
-            namespace to entries.associateWith { false }
-        )
-    )
-}
-
-object SelectableAge {
-    const val OVER_14 = 14
-    const val OVER_16 = 16
-    const val OVER_18 = 18
-    const val OVER_21 = 21
-
-    val values = listOf(OVER_14, OVER_16, OVER_18, OVER_21)
-}
-
 enum class VerifierState {
     INIT,
     SELECT_CUSTOM_REQUEST,
+    SELECT_COMBINED_REQUEST,
     QR_ENGAGEMENT,
     WAITING_FOR_RESPONSE,
     PRESENTATION,

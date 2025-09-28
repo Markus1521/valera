@@ -3,7 +3,6 @@ package data.credentials
 import androidx.compose.ui.graphics.ImageBitmap
 import at.asitplus.jsonpath.core.NormalizedJsonPath
 import at.asitplus.jsonpath.core.NormalizedJsonPathSegment
-import at.asitplus.signum.indispensable.io.Base64UrlStrict
 import at.asitplus.wallet.idaustria.IdAustriaCredential
 import at.asitplus.wallet.idaustria.IdAustriaScheme
 import at.asitplus.wallet.lib.agent.SubjectCredentialStore
@@ -13,7 +12,6 @@ import data.Attribute
 import io.github.aakira.napier.Napier
 import io.ktor.util.decodeBase64Bytes
 import io.ktor.util.decodeBase64String
-import io.matthewnelson.encoding.core.Decoder.Companion.decodeToByteArray
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -21,7 +19,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 
 sealed class IdAustriaCredentialAdapter(
-    private val decodePortrait: (ByteArray) -> ImageBitmap?,
+    private val decodePortrait: (ByteArray) -> Result<ImageBitmap>,
 ) : CredentialAdapter() {
     override fun getAttribute(path: NormalizedJsonPath) = path.segments.firstOrNull()?.let { first ->
         with(IdAustriaScheme.Attributes) {
@@ -74,7 +72,7 @@ sealed class IdAustriaCredentialAdapter(
     val portraitBitmap: ImageBitmap? by lazy {
 
         kotlin.runCatching {
-            portraitRaw?.let(decodePortrait)
+            portraitRaw?.let(decodePortrait)?.getOrNull()
         }.onFailure { Napier.e(throwable = it) { "Error decoding image" } }.getOrNull()
     }
     abstract val ageAtLeast14: Boolean?
@@ -91,7 +89,7 @@ sealed class IdAustriaCredentialAdapter(
     companion object {
         fun createFromStoreEntry(
             storeEntry: SubjectCredentialStore.StoreEntry,
-            decodeImage: (ByteArray) -> ImageBitmap?,
+            decodeImage: (ByteArray) -> Result<ImageBitmap>,
         ): IdAustriaCredentialAdapter {
             if (storeEntry.scheme !is IdAustriaScheme) {
                 throw IllegalArgumentException("credential")
@@ -123,7 +121,7 @@ sealed class IdAustriaCredentialAdapter(
 
 private class IdAustriaCredentialVcAdapter(
     val credentialSubject: IdAustriaCredential,
-    decodeImage: (ByteArray) -> ImageBitmap?,
+    decodeImage: (ByteArray) -> Result<ImageBitmap>,
 ) : IdAustriaCredentialAdapter(decodeImage) {
     override val scheme: ConstantIndex.CredentialScheme
         get() = IdAustriaScheme
@@ -164,7 +162,7 @@ private class IdAustriaCredentialVcAdapter(
 
 private class IdAustriaCredentialSdJwtAdapter(
     private val attributes: Map<String, JsonPrimitive>,
-    decodeImage: (ByteArray) -> ImageBitmap?,
+    decodeImage: (ByteArray) -> Result<ImageBitmap>,
 ) : IdAustriaCredentialAdapter(decodeImage) {
     override val scheme: ConstantIndex.CredentialScheme
         get() = IdAustriaScheme
@@ -185,7 +183,7 @@ private class IdAustriaCredentialSdJwtAdapter(
         get() = attributes[IdAustriaScheme.Attributes.DATE_OF_BIRTH]?.contentOrNull?.toLocalDateOrNull()
 
     override val portraitRaw: ByteArray?
-        get() = attributes[IdAustriaScheme.Attributes.PORTRAIT]?.contentOrNull?.decodeToByteArray(Base64UrlStrict)
+        get() = attributes[IdAustriaScheme.Attributes.PORTRAIT]?.contentOrNull?.decodeFromPortraitString()
 
     override val ageAtLeast14: Boolean?
         get() = attributes[IdAustriaScheme.Attributes.AGE_OVER_14]?.booleanOrNull
@@ -205,7 +203,7 @@ private class IdAustriaCredentialSdJwtAdapter(
 
 private class IdAustriaCredentialIsoMdocAdapter(
     namespaces: Map<String, Map<String, Any>>?,
-    decodeImage: (ByteArray) -> ImageBitmap?,
+    decodeImage: (ByteArray) -> Result<ImageBitmap>,
 ) : IdAustriaCredentialAdapter(decodeImage) {
     override val scheme: ConstantIndex.CredentialScheme
         get() = IdAustriaScheme

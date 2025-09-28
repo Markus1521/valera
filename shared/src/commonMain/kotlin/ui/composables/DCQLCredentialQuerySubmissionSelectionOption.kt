@@ -18,14 +18,12 @@ import at.asitplus.jsonpath.core.NormalizedJsonPath
 import at.asitplus.openid.dcql.DCQLClaimsQueryResult
 import at.asitplus.openid.dcql.DCQLCredentialQueryMatchingResult
 import at.asitplus.openid.dcql.DCQLCredentialSubmissionOption
-import at.asitplus.wallet.app.common.thirdParty.at.asitplus.jsonpath.core.plus
 import at.asitplus.wallet.app.common.thirdParty.at.asitplus.wallet.lib.agent.representation
 import at.asitplus.wallet.app.common.thirdParty.at.asitplus.wallet.lib.data.getLocalization
 import at.asitplus.wallet.app.common.thirdParty.kotlinx.serialization.json.leafNodeList
-import at.asitplus.wallet.lib.agent.SdJwtValidator
+import at.asitplus.wallet.lib.agent.SdJwtDecoded
 import at.asitplus.wallet.lib.agent.SubjectCredentialStore
 import at.asitplus.wallet.lib.data.CredentialToJsonConverter.toJsonElement
-import at.asitplus.wallet.lib.data.rfc.tokenStatusList.primitives.TokenStatus
 import at.asitplus.wallet.lib.data.vckJsonSerializer
 import at.asitplus.wallet.lib.jws.SdJwtSigned
 import data.Attribute
@@ -37,6 +35,8 @@ import org.jetbrains.compose.resources.stringResource
 import ui.composables.credentials.CredentialSelectionCardHeader
 import ui.composables.credentials.CredentialSelectionCardLayout
 import ui.composables.credentials.CredentialSummaryCardContent
+import ui.models.CredentialFreshnessSummaryUiModel
+import ui.models.CredentialFreshnessValidationStateUiModel
 
 
 @Composable
@@ -44,18 +44,16 @@ fun DCQLCredentialQuerySubmissionSelectionOption(
     isSelected: Boolean,
     onToggleSelection: () -> Unit,
     option: DCQLCredentialSubmissionOption<SubjectCredentialStore.StoreEntry>,
-    checkRevocationStatus: suspend (SubjectCredentialStore.StoreEntry) -> TokenStatus?,
-    decodeToBitmap: (ByteArray) -> ImageBitmap?,
+    checkCredentialFreshness: suspend (SubjectCredentialStore.StoreEntry) -> CredentialFreshnessSummaryUiModel,
+    decodeToBitmap: (ByteArray) -> Result<ImageBitmap>,
     modifier: Modifier = Modifier,
 ) {
-    val credentialStatusState by produceState(
-        CredentialStatusState.Loading as CredentialStatusState,
+    val credentialFreshnessValidationState by produceState(
+        CredentialFreshnessValidationStateUiModel.Loading as CredentialFreshnessValidationStateUiModel,
         option.credential
     ) {
-        value = CredentialStatusState.Loading
-        value = CredentialStatusState.Success(
-            checkRevocationStatus(option.credential)
-        )
+        value = CredentialFreshnessValidationStateUiModel.Loading
+        value = CredentialFreshnessValidationStateUiModel.Done(checkCredentialFreshness(option.credential))
     }
 
 
@@ -106,13 +104,13 @@ fun DCQLCredentialQuerySubmissionSelectionOption(
     }
 
     CredentialSelectionCardLayout(
-        credentialStatusState = credentialStatusState,
+        credentialFreshnessValidationState = credentialFreshnessValidationState,
         onClick = onToggleSelection,
         isSelected = isSelected,
         modifier = modifier,
     ) {
         CredentialSelectionCardHeader(
-            credentialStatusState = credentialStatusState,
+            credentialFreshnessValidationState = credentialFreshnessValidationState,
             credential = credential,
             modifier = Modifier.fillMaxWidth()
         )
@@ -152,7 +150,7 @@ private fun SubjectCredentialStore.StoreEntry.allClaims() = when (this) {
     }
 
     is SubjectCredentialStore.StoreEntry.SdJwt -> SdJwtSigned.parse(vcSerialized)
-        ?.let { SdJwtValidator(it).reconstructedJsonObject } ?: buildJsonObject {
+        ?.let { SdJwtDecoded(it).reconstructedJsonObject } ?: buildJsonObject {
         disclosures.forEach { disclosure ->
             disclosure.value?.claimValue?.let { put(disclosure.key, it) }
         }

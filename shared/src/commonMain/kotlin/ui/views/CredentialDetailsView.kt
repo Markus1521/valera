@@ -32,6 +32,7 @@ import at.asitplus.valera.resources.Res
 import at.asitplus.valera.resources.heading_label_credential_details_screen
 import at.asitplus.wallet.companyregistration.CompanyRegistrationScheme
 import at.asitplus.wallet.cor.CertificateOfResidenceScheme
+import at.asitplus.wallet.ehic.EhicScheme
 import at.asitplus.wallet.eupid.EuPidScheme
 import at.asitplus.wallet.eupidsdjwt.EuPidSdJwtScheme
 import at.asitplus.wallet.healthid.HealthIdScheme
@@ -40,20 +41,12 @@ import at.asitplus.wallet.lib.agent.SubjectCredentialStore
 import at.asitplus.wallet.mdl.MobileDrivingLicenceScheme
 import at.asitplus.wallet.por.PowerOfRepresentationScheme
 import at.asitplus.wallet.taxid.TaxIdScheme
-import at.asitplus.wallet.taxid.TaxId2025Scheme
 import org.jetbrains.compose.resources.stringResource
 import ui.composables.CredentialCardActionMenu
 import ui.composables.Logo
+import ui.composables.ScreenHeading
 import ui.composables.buttons.NavigateUpButton
-import ui.composables.credentials.CertificateOfResidenceCredentialView
-import ui.composables.credentials.CompanyRegistrationCredentialView
-import ui.composables.credentials.EuPidCredentialView
-import ui.composables.credentials.GenericCredentialSummaryCardContent
-import ui.composables.credentials.HealthIdView
-import ui.composables.credentials.IdAustriaCredentialView
-import ui.composables.credentials.MobileDrivingLicenceCredentialView
-import ui.composables.credentials.PowerOfRepresentationCredentialView
-import ui.composables.credentials.TaxIdCredentialView
+import ui.composables.credentials.*
 import ui.viewmodels.CredentialDetailsViewModel
 
 @Composable
@@ -110,10 +103,9 @@ fun CredentialDetailsScaffold(
                 },
                 title = {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(
+                        ScreenHeading(
                             stringResource(Res.string.heading_label_credential_details_screen),
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.headlineLarge
+                            Modifier.weight(1f),
                         )
                     }
                 },
@@ -145,9 +137,10 @@ fun CredentialDetailsScaffold(
 @Composable
 fun CredentialDetailsSummaryView(
     storeEntry: SubjectCredentialStore.StoreEntry,
-    imageDecoder: (ByteArray) -> ImageBitmap,
+    imageDecoder: (ByteArray) -> Result<ImageBitmap>,
 ) {
     Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+        @Suppress("DEPRECATION")
         when (storeEntry.scheme) {
             is IdAustriaScheme -> IdAustriaCredentialView(storeEntry, imageDecoder)
             is EuPidScheme -> EuPidCredentialView(storeEntry, imageDecoder)
@@ -157,8 +150,8 @@ fun CredentialDetailsSummaryView(
             is CertificateOfResidenceScheme -> CertificateOfResidenceCredentialView(storeEntry)
             is CompanyRegistrationScheme -> CompanyRegistrationCredentialView(storeEntry)
             is HealthIdScheme -> HealthIdView(storeEntry)
+            is EhicScheme -> EhicView(storeEntry)
             is TaxIdScheme -> TaxIdCredentialView(storeEntry)
-            is TaxId2025Scheme -> TaxIdCredentialView(storeEntry)
             else -> {}
         }
         GenericCredentialSummaryCardContent(

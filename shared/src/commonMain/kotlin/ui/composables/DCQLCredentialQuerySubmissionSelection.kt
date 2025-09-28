@@ -8,16 +8,16 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.dp
 import at.asitplus.openid.dcql.DCQLCredentialSubmissionOption
 import at.asitplus.wallet.lib.agent.SubjectCredentialStore
-import at.asitplus.wallet.lib.data.rfc.tokenStatusList.primitives.TokenStatus
+import ui.models.CredentialFreshnessSummaryUiModel
 
 
 @Composable
 fun DCQLCredentialQuerySubmissionSelection(
     selectionOptions: List<DCQLCredentialSubmissionOption<SubjectCredentialStore.StoreEntry>>,
-    checkRevocationStatus: suspend (SubjectCredentialStore.StoreEntry) -> TokenStatus?,
+    checkCredentialFreshness: suspend (SubjectCredentialStore.StoreEntry) -> CredentialFreshnessSummaryUiModel,
     currentlySelectedOptionIndex: Int?,
     onChangeSelection: (Int?) -> Unit,
-    decodeToBitmap: (ByteArray) -> ImageBitmap?,
+    decodeToBitmap: (ByteArray) -> Result<ImageBitmap>,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -27,7 +27,7 @@ fun DCQLCredentialQuerySubmissionSelection(
         selectionOptions.forEachIndexed { index, option ->
             val isSelected = index == currentlySelectedOptionIndex
             DCQLCredentialQuerySubmissionSelectionOption(
-                checkRevocationStatus = checkRevocationStatus,
+                checkCredentialFreshness = checkCredentialFreshness,
                 isSelected = isSelected,
                 onToggleSelection = { onChangeSelection(if (isSelected) null else index) },
                 decodeToBitmap = decodeToBitmap,

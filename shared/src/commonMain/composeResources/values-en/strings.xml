@@ -13,7 +13,7 @@
     <string name="snackbar_credential_loaded_successfully">Data has been loaded successfully</string>
     <string name="snackbar_reset_app_successfully">App has been reset successfully</string>
     <string name="snackbar_clear_log_successfully">Log has been cleared successfully</string>
-    <string name="snackbar_update_hint">Your app version is out-of-date, please visit %1$s to update to %2$s</string>
+    <string name="snackbar_update_hint">Your app is out-of-date, please update to %1$s.</string>
     <string name="snackbar_update_action">Open</string>
     <string name="snackbar_sign_successful">Signed successfully</string>
 
@@ -51,11 +51,6 @@
     <string name="button_label_show_technical_details">Show technical details</string>
     <string name="button_label_hide_technical_details">Hide technical details</string>
     <string name="button_label_sign">Sign</string>
-    <string name="button_label_check_identity">Check Identity</string>
-    <string name="button_label_check_license">Check License</string>
-    <string name="button_label_check_age">Check Age</string>
-    <string name="button_label_check_custom">Custom Request</string>
-    <string name="button_label_check_over_age">Over %1$s</string>
 
     <string name="switch_label_use_negotiated_handover">Negotiated Handover</string>
     <string name="switch_label_use_ble_central_client_mode">BLE Central Client Mode</string>
@@ -183,6 +178,13 @@
     <string name="attribute_friendly_name_pid_id">PID ID</string>
     <string name="attribute_friendly_name_verification_status">Verification status</string>
 
+    <string name="attribute_friendly_name_issuing_authority_id">Issuing Authority: ID</string>
+    <string name="attribute_friendly_name_issuing_authority_name">Issuing Authority: Name</string>
+    <string name="attribute_friendly_name_authentic_source">Authentic Source</string>
+    <string name="attribute_friendly_name_authentic_source_id">Authentic Source: ID</string>
+    <string name="attribute_friendly_name_authentic_source_name">Authentic Source: Name</string>
+    <string name="attribute_friendly_name_social_security_number">Social Security Number</string>
+
     <string name="credential_representation_format_label_plain_jwt">Plain JWT</string>
     <string name="credential_representation_format_label_sd_jwt">SD-JWT</string>
     <string name="credential_representation_format_label_mso_mdoc">ISO mDoc</string>
@@ -211,6 +213,8 @@
     <string name="credential_scheme_label_tax_id">Tax ID</string>
     <string name="credential_scheme_label_tax_id_2025">Tax ID (2025)</string>
     <string name="credential_scheme_icon_label_tax_id">TAX</string>
+    <string name="credential_scheme_label_ehic">European Health Insurance Card</string>
+    <string name="credential_scheme_icon_label_ehic">EHIC</string>
 
     <string name="navigation_button_label_show_data">Present</string>
     <string name="navigation_button_label_my_data">Data</string>
@@ -240,11 +244,16 @@
     <string name="text_label_valid_from">Valid from</string>
     <string name="text_label_valid_to">Valid to</string>
     <string name="text_label_optional">Optional</string>
+    <string name="text_label_all_claims_requested">All attributes</string>
     <string name="text_label_check_all">Check all</string>
     <string name="text_label_powered_by">POWERED BY</string>
     <string name="text_label_certificate">Certificate</string>
     <string name="text_label_vda">VDA</string>
     <string name="text_label_no_certificate">No data available</string>
+    <string name="text_label_status_uri">Status URI</string>
+    <string name="text_label_status_idx">Status Index</string>
+    <string name="text_label_vcType">VcType</string>
+    <string name="text_label_docType">DocType</string>
 
     <string name="heading_label_authenticate_at_device_title">Authenticate</string>
     <string name="heading_label_authenticate_at_device_subtitle">at relying party</string>
@@ -265,22 +274,18 @@
     <string name="heading_label_refresh_data_screen">Load data</string>
     <string name="heading_label_authenticate_at_device_screen">Authenticate at\nrelying party</string>
     <string name="heading_label_sign_document">Sign document</string>
-    <string name="heading_label_select_data_retrieval_screen">Check</string>
-    <string name="heading_label_select_custom_data_retrieval_screen">Custom Request</string>
     <string name="heading_label_check_scan_qr_code">Scan QR-Code</string>
     <string name="heading_label_show_qr_code_screen">Scan me!</string>
     <string name="heading_label_received_data">Received Data</string>
+    <string name="heading_label_result">Result</string>
 
     <string name="heading_label_select_vda">Select VDA</string>
     <string name="heading_label_sign">Sign</string>
     <string name="heading_label_tech_demo">Tech Demo</string>
 
-    <string name="biometric_authentication_prompt_for_data_transmission_consent_title">Biometric Authentication</string>
-    <string name="biometric_authentication_prompt_for_data_transmission_consent_subtitle">Disclose data</string>
-    <string name="biometric_authentication_prompt_to_load_data_title">Biometric Authentication</string>
-    <string name="biometric_authentication_prompt_to_load_data_subtitle">Load data</string>
-    <string name="biometric_authentication_prompt_to_bind_credentials_title">Biometric Authentication</string>
-    <string name="biometric_authentication_prompt_to_bind_credentials_subtitle">Create device binding</string>
+    <string name="biometric_authentication_prompt_for_data_transmission_consent_title">Disclose data</string>
+    <string name="biometric_authentication_prompt_to_load_data_title">Load data</string>
+    <string name="biometric_authentication_prompt_to_bind_credentials_title">Create device binding</string>
 
     <string name="content_description_navigate_back">Back</string>
     <string name="content_description_delete_credential">Delete</string>
@@ -289,6 +294,7 @@
     <string name="content_description_add_credential">Load more data</string>
     <string name="content_description_show_attributes">Show attributes</string>
     <string name="content_description_hide_attributes">Hide attributes</string>
+    <string name="content_description_navigate_to_settings">Go to Settings</string>
 
     <string name="prompt_ask_load_missing_data">Should the missing attributes be loaded?</string>
     <string name="prompt_send_above_data">Should this data be presented?</string>
@@ -297,6 +303,8 @@
     <string name="prompt_select_attribute">Which attributes should be transmitted?</string>
 
     <string name="error_credential_status_invalid">INVALID</string>
+    <string name="error_credential_timeliness_expired">EXPIRED</string>
+    <string name="error_credential_timeliness_not_yet_valid">NOT YET VALID</string>
     <string name="error_credential_scheme_not_supported">Unsupported credential scheme</string>
     <string name="error_feature_not_yet_available">Incomplete Implementation</string>
     <string name="error_authentication_at_sp_failed">Authentication failed</string>
@@ -325,11 +333,16 @@
     <string name="error_missing_permissions">Permission Denied</string>
     <string name="error_missing_value">Error no value given</string>
     <string name="error_bluetooth_unavailable">Bluetooth is not available</string>
+    <string name="error_bluetooth_and_nfc_unavailable">Neither Bluetooth nor NFC is available</string>
     <string name="error_no_requests">No requests found</string>
+    <string name="error_clearing_log_failed">Deleting log failed.</string>
+    <string name="error_resetting_app_failed">Resetting the app failed.</string>
 
     <string name="info_text_show_data_situation">In which Situation do you want to present your data?</string>
     <string name="info_text_error_occurred">An error occurred.</string>
-    <string name="info_text_to_start_screen">You get redirected to the start screen.</string>
+    <string name="info_text_error_action_start_screen">You will be redirected to the start screen.</string>
+    <string name="info_text_error_action_reset_app">You will be redirected to the initialization screen.</string>
+    <string name="info_text_error_cause_reset_app">Due to breaking changes the App needs a reset.</string>
     <string name="info_text_data_items_missing">missing</string>
     <string name="info_text_authentication_success">The authentication has been carried out successfully.</string>
     <string name="info_text_no_credentials_available">No data is available yet.</string>
@@ -353,7 +366,7 @@
     <string name="section_heading_present_data_to_executive_subtitle">Executive</string>
     <string name="section_heading_present_data_to_other_citizen_subtitle">other Citizen</string>
     <string name="section_heading_actions">Actions</string>
-    <string name="section_heading_transfer_options">Transfer Settings (temporary)</string>
+    <string name="section_heading_transfer_options">Transfer Settings</string>
     <string name="section_heading_information">Information</string>
     <string name="section_heading_requested_data">Requested Data</string>
     <string name="section_heading_data_recipient">Recipient</string>
@@ -384,12 +397,8 @@
     <string name="section_heading_missing_data">Load new data</string>
     <string name="section_heading_available_data">Refresh existing data</string>
     <string name="section_heading_transaction_data">Transaction</string>
-    <string name="section_heading_request_eausweise">eAusweise request</string>
-    <string name="section_heading_request_license">Other request</string>
-    <string name="section_heading_request_custom">Custom request</string>
-    <string name="section_heading_select_document_type">Select document type:</string>
-    <string name="section_heading_selected_namespace">Namespace: </string>
-    <string name="section_heading_select_requested_data_entries">Select data entries:</string>
+    <string name="section_heading_technical_data">Technical data</string>
+    <string name="section_heading_technical_data_icon_text">T</string>
 
     <string name="onboarding_section_load_data_icon_text">2</string>
     <string name="onboarding_section_load_data_title">Load data into the app</string>
@@ -411,8 +420,41 @@
     <string name="presentation_permission_required">Checking if required permissions are set…</string>
     <string name="presentation_initialised">Presentation initialising…</string>
 
+    <string name="jwt_claim_label_aud">Audience</string>
+    <string name="jwt_claim_label_iss">Issuer</string>
+    <string name="jwt_claim_label_sub">Subject</string>
+    <string name="jwt_claim_label_exp">Expiration Time</string>
+    <string name="jwt_claim_label_nbf">Not Before TIme</string>
+    <string name="jwt_claim_label_iat">Issued At</string>
+
     <!-- DeviceEngagementMethods -->
     <string name="section_heading_request_engagement_method">Device Engagement Method</string>
     <string name="nfc">NFC</string>
     <string name="qr">QR-Code</string>
+
+    <!-- Verify Data Route -->
+    <string name="heading_label_select_data_retrieval_screen">Check</string>
+    <string name="heading_label_select_custom_data_retrieval_screen">Custom</string>
+    <string name="heading_label_select_combined_data_retrieval_screen">Combined</string>
+    <string name="section_heading_request_mdl">mDL requests</string>
+    <string name="section_heading_request_pid">PID requests</string>
+    <string name="section_heading_request_hid">HealthID request</string>
+    <string name="section_heading_request_combined">Combined request</string>
+    <string name="section_heading_request_custom">Custom request</string>
+    <string name="section_heading_select_document_type">Select document type</string>
+    <string name="section_heading_selected_namespace">Namespace: %1$s</string>
+    <string name="section_heading_select_requested_data_entries">Select data entries</string>
+    <string name="section_heading_document_type">Document type: %1$s</string>
+    <string name="button_label_check_identity">Check Identity</string>
+    <string name="button_label_check_license">Check License</string>
+    <string name="button_label_check_age">Check Age</string>
+    <string name="button_label_check_combined">Combined Request</string>
+    <string name="button_label_check_custom">Custom Request</string>
+    <string name="button_label_check_over_age">Over %1$s</string>
+    <string name="button_label_check_health_id">Check HealthID</string>
+    <string name="button_add_request">Add request</string>
+    <string name="text_label_all_attributes">All Attributes</string>
+    <string name="text_label_mandatory_attributes">Mandatory Attributes</string>
+    <string name="text_label_requests">Requests</string>
+    <string name="info_text_no_requests">No requests</string>
 </resources>

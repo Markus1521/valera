@@ -2,18 +2,19 @@ package ui.views.authentication
 
 import androidx.compose.runtime.Composable
 import at.asitplus.wallet.app.common.decodeImage
+import at.asitplus.wallet.lib.openid.DCQLMatchingResult
+import at.asitplus.wallet.lib.openid.PresentationExchangeMatchingResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
+import ui.models.toCredentialFreshnessSummaryModel
 import ui.viewmodels.authentication.AuthenticationConsentViewModel
 import ui.viewmodels.authentication.AuthenticationNoCredentialViewModel
 import ui.viewmodels.authentication.AuthenticationSelectionDCQLView
 import ui.viewmodels.authentication.AuthenticationSelectionPresentationExchangeViewModel
 import ui.viewmodels.authentication.AuthenticationViewModel
 import ui.viewmodels.authentication.AuthenticationViewState
-import ui.viewmodels.authentication.DCQLMatchingResult
-import ui.viewmodels.authentication.PresentationExchangeMatchingResult
 
 @Composable
 fun AuthenticationView(
@@ -60,24 +61,22 @@ fun AuthenticationView(
                         onClickSettings = vm.onClickSettings,
                         confirmSelection = { vm.confirmSelection(it) },
                         matchingResult = matching,
-                        checkRevocationStatus = {
-                            vm.walletMain.checkRevocationStatus(it)
+                        checkCredentialFreshness = {
+                            vm.walletMain.checkCredentialFreshness(it).toCredentialFreshnessSummaryModel()
                         },
-                        decodeToBitmap = { byteArray ->
-                            vm.walletMain.platformAdapter.decodeImage(byteArray)
-                        },
+                        decodeToBitmap = { vm.walletMain.platformAdapter.decodeImage(it) },
                         onError = onError,
                     )
                 }
 
                 is PresentationExchangeMatchingResult -> {
                     AuthenticationSelectionPresentationExchangeView(
+                        onClickLogo = vm.onClickLogo,
+                        onClickSettings = vm.onClickSettings,
                         vm = AuthenticationSelectionPresentationExchangeViewModel(
                             walletMain = vm.walletMain,
                             confirmSelections = { selections -> vm.confirmSelection(selections) },
                             navigateUp = { vm.viewState = AuthenticationViewState.Consent },
-                            onClickLogo = vm.onClickLogo,
-                            onClickSettings = vm.onClickSettings,
                             credentialMatchingResult = matching,
                             navigateToHomeScreen = vm.navigateToHomeScreen
                         ),

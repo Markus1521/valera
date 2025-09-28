@@ -3,6 +3,7 @@ package data.credentials
 import at.asitplus.jsonpath.core.NormalizedJsonPath
 import at.asitplus.wallet.companyregistration.CompanyRegistrationScheme
 import at.asitplus.wallet.cor.CertificateOfResidenceScheme
+import at.asitplus.wallet.ehic.EhicScheme
 import at.asitplus.wallet.eupid.EuPidScheme
 import at.asitplus.wallet.eupidsdjwt.EuPidSdJwtScheme
 import at.asitplus.wallet.healthid.HealthIdScheme
@@ -11,7 +12,6 @@ import at.asitplus.wallet.lib.data.ConstantIndex
 import at.asitplus.wallet.mdl.MobileDrivingLicenceScheme
 import at.asitplus.wallet.por.PowerOfRepresentationScheme
 import at.asitplus.wallet.taxid.TaxIdScheme
-import at.asitplus.wallet.taxid.TaxId2025Scheme
 import data.PersonalDataCategory
 import data.credentialsdatacard.CompanyRegistrationCredentialAttributeCategorization
 
@@ -22,6 +22,7 @@ import data.credentialsdatacard.CompanyRegistrationCredentialAttributeCategoriza
  */
 typealias AttributeUnpackingInformation = Pair<NormalizedJsonPath, List<NormalizedJsonPath>?>
 
+@Suppress("DEPRECATION")
 interface CredentialAttributeCategorization {
     companion object {
         fun load(
@@ -36,8 +37,8 @@ interface CredentialAttributeCategorization {
             is CertificateOfResidenceScheme -> CertificateOfResidenceCredentialAttributeCategorization
             is CompanyRegistrationScheme -> CompanyRegistrationCredentialAttributeCategorization
             is HealthIdScheme -> HealthIdCredentialAttributeCategorization
+            is EhicScheme -> EhicCredentialAttributeCategorization
             is TaxIdScheme -> TaxIdCredentialAttributeCategorization
-            is TaxId2025Scheme -> TaxIdCredentialAttributeCategorization
             else -> EmptyCredentialAttributeCategorization
         }
     }
