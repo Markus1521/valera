@@ -1,7 +1,17 @@
 package at.asitplus.wallet.app.common
 
+import at.asitplus.catching
 import at.asitplus.openid.CredentialOffer
+import at.asitplus.openid.OpenIdConstants
+import at.asitplus.signum.indispensable.asn1.Asn1Primitive
+import at.asitplus.signum.indispensable.asn1.Asn1String
+import at.asitplus.signum.indispensable.asn1.KnownOIDs
+import at.asitplus.signum.indispensable.asn1.commonName
+import at.asitplus.signum.indispensable.josef.KeyAttestationJwt
+import at.asitplus.signum.indispensable.pki.AttributeTypeAndValue
+import at.asitplus.signum.indispensable.pki.X509Certificate
 import at.asitplus.wallet.app.common.data.SettingsRepository
+import at.asitplus.wallet.lib.agent.EphemeralKeyWithSelfSignedCert
 import at.asitplus.wallet.lib.agent.HolderAgent
 import at.asitplus.wallet.lib.agent.KeyMaterial
 import at.asitplus.wallet.lib.data.AttributeIndex
@@ -12,8 +22,10 @@ import at.asitplus.wallet.lib.jws.JwsHeaderNone
 import at.asitplus.wallet.lib.jws.SignJwt
 import at.asitplus.wallet.lib.ktor.openid.CredentialIdentifierInfo
 import at.asitplus.wallet.lib.ktor.openid.CredentialIssuanceResult
+import at.asitplus.wallet.lib.ktor.openid.OAuth2KtorClient
 import at.asitplus.wallet.lib.ktor.openid.OpenId4VciClient
 import at.asitplus.wallet.lib.ktor.openid.ProvisioningContext
+import at.asitplus.wallet.lib.oauth2.OAuth2Client
 import at.asitplus.wallet.lib.oidvci.BuildClientAttestationJwt
 import at.asitplus.wallet.lib.oidvci.WalletService
 import data.storage.DataStoreService
@@ -27,6 +39,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 import ui.navigation.IntentService
+import kotlin.time.Clock.System
 import kotlin.time.Duration.Companion.minutes
 
 
@@ -39,8 +52,6 @@ class ProvisioningService(
     private val errorService: ErrorService,
     httpService: HttpService,
 ) {
-    /** Checked by appLink handling whether to jump into [resumeWithAuthCode] */
-    private var redirectUri: String? = null
     private val cookieStorage = PersistentCookieStorage(dataStoreService, errorService)
     private val client = httpService.buildHttpClient(cookieStorage = cookieStorage)
 
@@ -51,7 +62,7 @@ class ProvisioningService(
     suspend fun clientAttestationJwt() = clientAttestationJwt ?: BuildClientAttestationJwt(
         SignJwt(keyMaterial, JwsHeaderCertOrJwk()),
         clientId = clientId,
-        issuer = "https://example.com",
+        issuer = keyMaterial.getCertificate()?.extractSubjectCn() ?: "https://example.com",
         lifetime = 60.minutes,
         clientKey = keyMaterial.jsonWebKey
     ).serialize().also {
@@ -62,9 +73,33 @@ class ProvisioningService(
         engine = HttpClient().engine,
         cookiesStorage = cookieStorage,
         httpClientConfig = httpService.loggingConfig,
-        loadClientAttestationJwt = { clientAttestationJwt() },
-        signClientAttestationPop = SignJwt(keyMaterial, JwsHeaderNone()),
-        oid4vciService = WalletService(clientId, redirectUrl, keyMaterial),
+        oauth2Client = OAuth2KtorClient(
+            engine = HttpClient().engine,
+            cookiesStorage = cookieStorage,
+            oAuth2Client = OAuth2Client(clientId = clientId, redirectUrl = redirectUrl),
+            httpClientConfig = httpService.loggingConfig,
+            loadClientAttestationJwt = { clientAttestationJwt() },
+            signClientAttestationPop = SignJwt(keyMaterial, JwsHeaderNone()),
+        ),
+        oid4vciService = WalletService(
+            clientId = clientId,
+            keyMaterial = keyMaterial,
+            loadKeyAttestation = {
+                with(EphemeralKeyWithSelfSignedCert()) {
+                    catching {
+                        SignJwt<KeyAttestationJwt>(this, JwsHeaderCertOrJwk())(
+                            OpenIdConstants.KEY_ATTESTATION_JWT_TYPE,
+                            KeyAttestationJwt(
+                                issuedAt = System.now(),
+                                nonce = it.clientNonce,
+                                attestedKeys = setOf(keyMaterial.jsonWebKey)
+                            ),
+                            KeyAttestationJwt.serializer(),
+                        ).getOrThrow()
+                    }
+                }
+            }
+        )
     )
 
     /**
@@ -100,7 +135,7 @@ class ProvisioningService(
         intentService.openIntent(
             url = url,
             redirectUri = redirectUrl,
-            intentType = IntentService.IntentType.ProvisioningIntent
+            intentType = IntentService.IntentType.ProvisioningResumeIntent
         )
     }
 
@@ -111,7 +146,6 @@ class ProvisioningService(
     @Throws(Throwable::class)
     suspend fun resumeWithAuthCode(redirectedUrl: String) {
         Napier.d("handleResponse with $redirectedUrl")
-        this.redirectUri = null
         dataStoreService.getPreference(Configuration.DATASTORE_KEY_PROVISIONING_CONTEXT)
             .firstOrNull()
             ?.let {
@@ -176,6 +210,15 @@ class ProvisioningService(
             }
         }
     }
+
+    private fun X509Certificate.extractSubjectCn(): String? =
+        firstSubjectName()?.commonName()?.let { Asn1String.doDecode(it) }?.value
+
+    private fun X509Certificate.firstSubjectName(): List<AttributeTypeAndValue>? =
+        tbsCertificate.subjectName.firstOrNull()?.attrsAndValues
+
+    private fun List<AttributeTypeAndValue>?.commonName(): Asn1Primitive? =
+        this?.find { it.oid == KnownOIDs.commonName }?.value as? Asn1Primitive
 }
 
 val CredentialIdentifierInfo.credentialScheme: ConstantIndex.CredentialScheme?
