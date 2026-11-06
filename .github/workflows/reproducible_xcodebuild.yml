@@ -1,0 +1,109 @@
+name: reproducible-xcodebuild
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    name: reproducible-xcodebuild
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup XCode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 26.2
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Show versions
+        working-directory: .
+        run: |
+          echo "\n----- Show XCode Version -----"
+            xcode-select -p
+            xcodebuild -version
+          echo "\n----- Show installed SDKs -----"
+            xcodebuild -showsdks
+          echo "\n----- Show Java version -----"
+            java --version
+          echo "\n----- Show ./gradlew version -----"
+            ./gradlew --version
+          echo "\n----- Show ld version -----"
+            ld -v
+          echo "\n----- Show clang version -----"
+            clang --version
+      - name: Cache gradle files
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-gradle
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.m2/repository
+          key: iOS-${{ hashFiles('./gradle/libs.versions.toml', './gradle.properties', './gradle/wrapper/gradle-wrapper.properties') }}
+      - name: "Build XCFramework..."
+        working-directory: .
+        run: |
+          ./gradlew :compose:assembleComposeAppReleaseXCFramework \
+            --no-daemon \
+            --console=plain
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: "Compose-XCFramework"
+          path: shared/build/XCFramework/release/ComposeApp.xcframework
+          retention-days: 7
+      - name: Show ASSETCATALOG
+        env:
+          working-directory: iosApp
+        run: |
+          xcrun actool --version
+      - name: Build iOS App
+        env:
+          SRCROOT: /Users/runner/work/valera/valera/iosApp
+        run: |
+          xcodebuild build \
+            -project "iosApp/iosApp.xcodeproj" \
+            -scheme "iosApp" \
+            -sdk iphoneos  \
+            -configuration Release \
+            -destination="generic/platform=iOS" \
+            -uploadSymbols="NO" \
+            -jobs 1 \
+            -archivePath ${{ github.workspace }}/build/iosApp.xcarchive \
+            -derivedDataPath ${{ github.workspace }}/build/DerivedData \
+            OTHER_LDFLAGS="-Wl,-reproducible -Wdate-time"  \
+            OTHER_SWIFT_FLAGS=" \
+              -file-prefix-map $SRCROOT=/project \
+              -debug-prefix-map $SRCROOT=/project \
+              -file-prefix-map ${{ github.workspace }}/build/obj=/project-obj \
+              -debug-prefix-map ${{ github.workspace }}/build/obj=/project-obj \
+          " \
+            DEBUG_PREFIX_MAP="$SRCROOT=/project" \
+            SWIFT_SERIALIZE_DEBUGGING_OPTIONS=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEPLOYMENT_POSTPROCESSING=YES \
+            STRIP_INSTALLED_PRODUCT=YES \
+            STRIP_STYLE=all \
+            COPY_PHASE_STRIP=YES \
+            CURRENT_PROJECT_VERSION=1 \
+            MARKETING_VERSION=1 \
+            SYMROOT="${{ github.workspace }}/build" \
+            OBJROOT="${{ github.workspace }}/build/obj" \
+            DSTROOT="${{ github.workspace }}/build/dst"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iosApp-${{ github.sha }}
+          path: ${{ github.workspace }}/build/**/*.app
+          retention-days: 7
