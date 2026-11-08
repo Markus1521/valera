@@ -51,7 +51,7 @@ jobs:
       - name: "Build XCFramework..."
         working-directory: .
         run: |
-          ./gradlew :compose:assembleComposeAppReleaseXCFramework \
+          ./gradlew :shared:assembleSharedReleaseXCFramework \
             --no-daemon \
             --console=plain
       - name: "Upload artifact"
